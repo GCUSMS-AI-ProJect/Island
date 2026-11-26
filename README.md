@@ -1,3 +1,11 @@
+# 消息灵动岛
+
+这是基于小糖岛仔源码制作的 Windows 消息灵动岛复刻版。使用和构建方式见 [复刻版说明](REPLICA.md)。
+
+上游项目采用 MIT 许可证，本仓库保留原始版权声明和 [许可证](LICENSE)。[小糖岛仔 GitHub](https://github.com/Renly1994/xiaotang-daozai)
+
+## 上游项目介绍
+
 <div align="center">
 
 <img src="assets/daozai-logo.png" width="112" alt="岛仔" />
