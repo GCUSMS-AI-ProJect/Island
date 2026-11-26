@@ -82,7 +82,7 @@ fn pill_shadow(painter:&egui::Painter,rect:Rect,radius:f32,strength:f32){
         painter.rect_filled(r,radius+grow*0.8,Color32::from_black_alpha((255.0*a*strength) as u8));
     }
 }
-pub(crate) const PAGE_NAMES: [&str; 11] = ["音乐", "专注", "健康", "置物架", "待办", "邮箱", "AI 额度", "日程", "天气", "系统性能", "无线设备"];
+pub(crate) const PAGE_NAMES: [&str; 11] = ["消息", "专注", "健康", "置物架", "待办", "邮箱", "AI 额度", "日程", "天气", "系统性能", "无线设备"];
 pub(crate) const PAGE_SHORTCUT_KEYS: [&str; PAGE_NAMES.len()] = [
     "music", "focus", "health", "shelf", "tasks", "mail", "quota", "calendar", "weather",
     "performance", "wireless",
@@ -946,6 +946,7 @@ pub struct App {
     messenger_scroll: f32,
     pub(crate) alerts: std::collections::VecDeque<Alert>,
     pub(crate) history: std::collections::VecDeque<Alert>,
+    pub(crate) message_sources: std::collections::VecDeque<String>,
     pub(crate) pending: Vec<Cmd>,
     pub(crate) todo_first: usize,
     pub(crate) todo_choosing: bool,
@@ -1138,7 +1139,7 @@ impl App {
             settings_plugin:None,
             forced_open_until:0.0, settings_open:false, settings_window:std::sync::Arc::new(std::sync::Mutex::new(crate::settings_window::State::load())), displays:Vec::new(), browser_at_top:false, browser_minimal_active:false, glass_tint:0.0, fluid:Default::default(), fluid_origin:Pos2::ZERO, fluid_art:None, fluid_title:String::new(), screen:None, horizontal_width:WIN_W, settings_focus_requested:false, settings_tab:0, settings_category:0, messenger_statuses:Default::default(), notification_apps:model::NotificationApps::load(), subpage:None, task_dialog:None,
             listener_status: "尚未连接".into(),
-            notification_bell_until: 0.0, notification_bell_at: -10.0, notice: None, hud_notice: None, hud_alpha: 0.0, notice_width:Spring::new(0.0,CLOSE.0,CLOSE.1), notice_details:false, pending_messengers:Vec::new(), messenger_scroll:0.0, alerts: Default::default(), history: Default::default(), pending: vec![],
+            notification_bell_until: 0.0, notification_bell_at: -10.0, notice: None, hud_notice: None, hud_alpha: 0.0, notice_width:Spring::new(0.0,CLOSE.0,CLOSE.1), notice_details:false, pending_messengers:Vec::new(), messenger_scroll:0.0, alerts: Default::default(), history: Default::default(), message_sources: Default::default(), pending: vec![],
             #[cfg(windows)]
             plugin_notice_ui: Default::default(),
             #[cfg(windows)]
@@ -3992,7 +3993,7 @@ impl App {
             self.render_page(self.page, c, c, env, cmds);
         }
         self.nav(c);
-        if self.page==0 && c.live {self.draw_music_volume(c,cmds);}
+
         in_tx
     }
 
@@ -4008,7 +4009,8 @@ impl App {
             return;
         }
         let (a, b, col) = match page {
-            0 | CALENDAR_PAGE => return,
+            0 => ("消息", "", theme::WHITE),
+            CALENDAR_PAGE => return,
             1 => ("番茄", "专注", theme::RED_TOP),
             // 健康页的标题由页面自己画（「健康提醒」+ 喝水/久坐分段切换）。
             2 => return,
@@ -4191,7 +4193,7 @@ impl App {
         #[cfg(any(feature="sdk-js",feature="sdk-wasm"))]
         if page==4 && crate::sdk_spike::live_card(c){return;}
         match page {
-            0 => self.page_music(c, env, cmds),
+            0 => self.page_messages(c),
             1 => self.page_focus(c, header, env),
             2 => self.page_water(c, header, env),
             3 => self.page_shelf(c, header, env, cmds),
@@ -4209,6 +4211,21 @@ impl App {
             BLUETOOTH_PAGE => self.page_wireless(c,env),
             CALENDAR_PAGE => self.page_calendar(c,header,env),
             _ => self.page_settings(c),
+        }
+    }
+
+    fn page_messages(&self, c: &Card) {
+        if self.message_sources.is_empty() {
+            c.text(PW / 2.0, 78.0, "暂无消息", size::BODY, W::Regular, theme::GRAY, H::Center);
+            return;
+        }
+
+        for (index, source) in self.message_sources.iter().take(3).enumerate() {
+            let top = 43.0 + 27.0 * index as f32;
+            c.fill(35.0, top, PW - 70.0, 23.0, 10.0, theme::CARD);
+            let row = c.clipped(46.0, top, PW - 160.0, 23.0);
+            row.text(47.0, top + 12.0, source, size::BODY, W::Semibold, theme::WHITE, H::Left);
+            c.text(PW - 47.0, top + 12.0, "新通知", size::SMALL, W::Regular, theme::DIM, H::Right);
         }
     }
 

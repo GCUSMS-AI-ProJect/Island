@@ -358,6 +358,11 @@ impl App {
             self.health_pending[kind as usize]=true;
             crate::model::save_health_pending(self.health_pending);
         }
+        if self.settings.notifications &&
+            matches!(a.source, AlertSource::Messenger(_) | AlertSource::External(_)) {
+            self.message_sources.push_front(a.title.clone());
+            self.message_sources.truncate(50);
+        }
         // 通知仅保存在本次运行的内存中。
         if matches!(a.source, AlertSource::Internal | AlertSource::MailCode(..)) {
             self.history.push_front(Alert { source: AlertSource::Internal, ..a.clone() });
@@ -1822,8 +1827,6 @@ impl App {
             release_support_codes(ctx);
             self.weather_source.close();
         }
-        self.updates.poll(ctx);
-        self.updates.dialog_ui(ctx);
         if !self.settings_open{return;}
         let id=egui::ViewportId::from_hash_of("daozai-settings");
         let focus_requested=std::mem::take(&mut self.settings_focus_requested);
@@ -2849,12 +2852,12 @@ impl App {
                         }
                     }
                     _=>{
-                        settings_label(ui,"岛仔 Daozai");
+                        settings_label(ui,"消息灵动岛");
                         settings_card(ui,|ui|{
                             ui.horizontal(|ui|{
                                 ui.label(egui::RichText::new(format!("版本 {}",env!("CARGO_PKG_VERSION"))).size(13.0));
                                 ui.add_space(8.0);
-                                ui.vertical(|ui|self.updates.ui(ui));
+                                ui.label("消息复刻版");
                             });
                             ui.label(egui::RichText::new("桌面顶部的音乐、专注、提醒与日程小助手。").size(12.0).color(settings_color(ctx,Color32::from_gray(180),Color32::from_gray(75))));
                             ui.horizontal_wrapped(|ui|{

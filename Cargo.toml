@@ -5,14 +5,14 @@ edition = "2021"
 license = "MIT"
 description = "岛仔：Windows 顶部的桌面伙伴与信息岛"
 repository = "https://github.com/Renly1994/xiaotang-daozai"
-default-run = "daozai"
+default-run = "message-island"
 
 [lib]
 name = "daozai"
 path = "src/lib.rs"
 
 [[bin]]
-name = "daozai"
+name = "message-island"
 path = "src/main.rs"
 
 # 无窗口演示录制器：脚本驱动 + 软件光栅化，输出 RGBA 帧流给 ffmpeg。

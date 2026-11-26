@@ -274,7 +274,7 @@ impl Shell {
         diagnostics::startup("初始化媒体和托盘");
         let media = smtc::shared();
         let media_enabled=smtc::spawn_poller(media.clone(),cc.egui_ctx.clone());
-        media_enabled.store(app.settings.visible_pages[0],std::sync::atomic::Ordering::Relaxed);
+        media_enabled.store(false,std::sync::atomic::Ordering::Relaxed);
         #[cfg(windows)]
         let autostart = daozai::tray::autostart_enabled();
         #[cfg(windows)]
@@ -602,7 +602,7 @@ impl eframe::App for Shell {
             daozai::resources::GALLEYS.store(ctx.fonts(|fonts|fonts.num_galleys_in_cache()),std::sync::atomic::Ordering::Relaxed);
             self.resource_at=PollClock::now();
         }
-        let music_on=self.app.module_on(app::MUSIC_PAGE);
+        let music_on = false;
         let guarded=daozai::resources::GUARD.tripped();
         if music_on && guarded && !self.guard_notified {
             // 资源保护熔断：停止音乐会话轮询（含封面、网易云日志）与歌词查询，保住用户电脑，重启后恢复。
@@ -1568,15 +1568,13 @@ fn run() -> eframe::Result<()> {
     #[cfg(windows)]
     if !profiling_island() && !daozai::tray::single_instance() {
         if !daozai::tray::activate_existing(std::env::args().any(|arg|arg=="--calendar")) {
-            diagnostics::report("岛仔已在运行，但暂时无法打开窗口。\n请稍后重试；若仍无法打开，请在任务管理器的“详细信息”中结束 daozai.exe 后重试。", "已有实例可能正在启动或已无响应。请稍后重试；若仍无法打开，请在任务管理器的“详细信息”中结束 daozai.exe，再重新启动。");
+            diagnostics::report("岛仔已在运行，但暂时无法打开窗口。\n请稍后重试；若仍无法打开，请在任务管理器的“详细信息”中结束 message-island.exe 后重试。", "已有实例可能正在启动或已无响应。请稍后重试；若仍无法打开，请在任务管理器的“详细信息”中结束 daozai.exe，再重新启动。");
         }
         return Ok(());
     }
-    #[cfg(windows)]
-    if !profiling_island(){std::thread::spawn(daozai::record_install_size);}
     diagnostics::startup("初始化图形窗口");
     let viewport = egui::ViewportBuilder::default()
-        .with_title("岛仔").with_icon(daozai::theme::app_icon())
+        .with_title("消息灵动岛").with_icon(daozai::theme::app_icon())
         .with_inner_size([app::CANVAS_W, app::WIN_H])
         .with_decorations(false)
         .with_transparent(true)
@@ -1587,7 +1585,7 @@ fn run() -> eframe::Result<()> {
         .with_visible(false);
     let opts = eframe::NativeOptions { viewport, vsync: !cfg!(windows), ..Default::default() };
     graphics::run(opts,|opts|{
-        let result=eframe::run_native("岛仔",opts,Box::new(|cc|Ok(Box::new(Shell::new(cc)))));
+        let result=eframe::run_native("消息灵动岛",opts,Box::new(|cc|Ok(Box::new(Shell::new(cc)))));
         #[cfg(all(windows, feature = "sdk-material"))]
         if daozai::material::report_run_failure(&result) {
             #[cfg(feature = "sdk-js")]
