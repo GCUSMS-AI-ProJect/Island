@@ -134,8 +134,8 @@ pub(super) fn launch_feishu(path: &Path, pid: u32) -> Result<(), &'static str> {
         if !trusted_file(PCWSTR(wide_path.as_ptr()), HANDLE(file.as_raw_handle()), |signer| expected_publisher(filename, signer)) {
             return Err("客户端签名或签名发布者无法验证");
         }
-        let current = process_token(GetCurrentProcess(), TOKEN_QUERY).map_err(|_| "无法确认Island运行权限")?;
-        if !elevated(*current).map_err(|_| "无法确认Island运行权限")? {
+        let current = process_token(GetCurrentProcess(), TOKEN_QUERY).map_err(|_| "无法确认爱尔栏运行权限")?;
+        if !elevated(*current).map_err(|_| "无法确认爱尔栏运行权限")? {
             return Command::new(&path).current_dir(dirname)
                 .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
                 .spawn().map(|_| ()).map_err(|_| "启动客户端程序失败");

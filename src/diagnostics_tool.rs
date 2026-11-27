@@ -271,7 +271,7 @@ mod archive {
 
         fs::create_dir_all(output_dir)?;
         let output = output_dir.join(format!(
-            "Island诊断-{}-{}.zip",
+            "爱尔栏诊断-{}-{}.zip",
             time.format("%Y%m%d-%H%M%S-%9f"),
             std::process::id()
         ));
@@ -294,7 +294,7 @@ mod archive {
 
     fn reveal(path: &Path) {
         let message = format!(
-            "诊断包已保存到：\n{}\n\n诊断包包含Island日志和系统状态。音乐日志可能包含歌名和歌手，请自行决定是否分享。\n\n点击确定后查看诊断包。",
+            "诊断包已保存到：\n{}\n\n诊断包包含爱尔栏日志和系统状态。音乐日志可能包含歌名和歌手，请自行决定是否分享。\n\n点击确定后查看诊断包。",
             path.display()
         );
         let message_wide = wide(OsStr::new(&message));
@@ -303,7 +303,7 @@ mod archive {
             MessageBoxW(
                 None,
                 PCWSTR(message_wide.as_ptr()),
-                w!("Island诊断"),
+                w!("爱尔栏诊断"),
                 MB_OK | MB_ICONINFORMATION,
             );
             let initialized = CoInitializeEx(None, COINIT_APARTMENTTHREADED).is_ok();

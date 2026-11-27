@@ -4023,7 +4023,7 @@ impl App {
             // 详情页的标题带返回箭头，由页面自己画。
             BLUETOOTH_PAGE if self.wireless_focus.is_some() && self.wireless_devices.len()>1 => return,
             BLUETOOTH_PAGE => ("无线", "设备", theme::CYAN),
-            _ => ("Island", "设置", theme::WHITE),
+            _ => ("爱尔栏", "设置", theme::WHITE),
         };
         let wa = c.text(15.0, base, a, size::TITLE, W::Bold, theme::WHITE, H::Left);
         if !b.is_empty() {

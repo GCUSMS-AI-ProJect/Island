@@ -465,9 +465,9 @@ mod tests {
             assert!(layered.present(owner, [4, 2], &px).unwrap());
             let mut alpha = 0u8;
             GetLayeredWindowAttributes(owner, None, Some(&mut alpha), None).unwrap();
-            assert_eq!(alpha, OWNER_ALPHA, "Island窗口几乎不可见，但不能是 0（否则点不到）");
+            assert_eq!(alpha, OWNER_ALPHA, "爱尔栏窗口几乎不可见，但不能是 0（否则点不到）");
             assert!(IsWindowVisible(layered.display()).as_bool());
-            assert_eq!(next_visible(layered.display()), Some(owner), "Island窗口紧贴在显示窗口下面");
+            assert_eq!(next_visible(layered.display()), Some(owner), "爱尔栏窗口紧贴在显示窗口下面");
             assert!(!layered.present(owner, [4, 2], &px).unwrap(), "同一画面不重复提交");
             assert!(!layered.present(owner, [8, 1], &[0u8; 32]).unwrap(), "尺寸与窗口不符时跳过");
             SetWindowPos(owner, None, -9000, -9000, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE).unwrap();
@@ -492,13 +492,13 @@ mod tests {
             assert!(!IsWindowVisible(layered.display()).as_bool(), "进入全屏后显示层仍然可见");
             px[4] = 32;
             assert!(layered.present(owner, [4, 2], &px).unwrap());
-            assert!(!IsWindowVisible(layered.display()).as_bool(), "迟到的读回帧重新显示了Island");
+            assert!(!IsWindowVisible(layered.display()).as_bool(), "迟到的读回帧重新显示了爱尔栏");
             assert_ne!(SetWindowRgn(owner, CreateRectRgn(0, 0, 4, 1), true), 0);
             layered.sync(owner, false);
             assert!(IsWindowVisible(layered.display()).as_bool(), "恢复为细线时也应立即显示");
             let _ = ShowWindow(owner, SW_HIDE);
             layered.sync(owner, false);
-            assert!(!IsWindowVisible(layered.display()).as_bool(), "Island窗口隐藏时显示窗口一起隐藏");
+            assert!(!IsWindowVisible(layered.display()).as_bool(), "爱尔栏窗口隐藏时显示窗口一起隐藏");
             layered.detach(owner);
             assert!(GetWindowLongPtrW(owner, GWL_EXSTYLE) & WS_EX_LAYERED.0 as isize == 0);
             let _ = DestroyWindow(owner);

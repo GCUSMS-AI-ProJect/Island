@@ -607,7 +607,7 @@ impl eframe::App for Shell {
         if music_on && guarded && !self.guard_notified {
             // 资源保护熔断：停止音乐会话轮询（含封面、网易云日志）与歌词查询，保住用户电脑，重启后恢复。
             self.guard_notified=true;self.app.opts.fetch_lyrics=false;
-            self.app.alert("Island已暂停音乐功能","检测到资源占用异常，已暂停读取音乐信息和歌词。重启Island即可恢复；诊断记录在数据目录的 diagnostics 文件夹。",0,false);
+            self.app.alert("爱尔栏已暂停音乐功能","检测到资源占用异常，已暂停读取音乐信息和歌词。重启爱尔栏即可恢复；诊断记录在数据目录的 diagnostics 文件夹。",0,false);
         }
         self.media_enabled.store(music_on && !guarded,std::sync::atomic::Ordering::Relaxed);
         if !music_on {
@@ -1105,7 +1105,7 @@ impl eframe::App for Shell {
                         self.app.save_window_before_exit();
                         #[cfg(windows)] if let Some(tray)=&self.tray {tray.exit_process();}
                         std::process::exit(0);
-                    }else{self.app.say("无法重新启动Island，请从托盘退出后手动打开");}
+                    }else{self.app.say("无法重新启动爱尔栏，请从托盘退出后手动打开");}
                 }
                 Cmd::Open(p) => {if let Err(e)=open_path(&p){self.app.say(e);}},
                 Cmd::OpenUrl(url)=>{
@@ -1456,7 +1456,7 @@ mod open_path_tests {
 
     #[test]
     fn unassociated_files_offer_open_with_and_cancellation_is_normal(){
-        let path=std::env::temp_dir().join(format!("Island 无关联-{}.island-open-test",std::process::id()));
+        let path=std::env::temp_dir().join(format!("爱尔栏 无关联-{}.island-open-test",std::process::id()));
         std::fs::write(&path,b"fixture").unwrap();
         for cancel in [false,true]{
             let mut chosen=false;
@@ -1507,7 +1507,7 @@ fn main() -> std::process::ExitCode {
     match run() {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(error) => {
-            diagnostics::report("Island启动或运行失败。", &error.to_string());
+            diagnostics::report("爱尔栏启动或运行失败。", &error.to_string());
             std::process::ExitCode::FAILURE
         }
     }
@@ -1536,7 +1536,7 @@ fn request_material_restart(app: &mut App, ctx: &egui::Context, fallback: bool) 
         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         true
     } else {
-        app.say("无法重新启动Island，请从托盘退出后手动打开");
+        app.say("无法重新启动爱尔栏，请从托盘退出后手动打开");
         ctx.request_repaint();
         false
     }
@@ -1568,7 +1568,7 @@ fn run() -> eframe::Result<()> {
     #[cfg(windows)]
     if !profiling_island() && !island::tray::single_instance() {
         if !island::tray::activate_existing(std::env::args().any(|arg|arg=="--calendar")) {
-            diagnostics::report("Island已在运行，但暂时无法打开窗口。\n请稍后重试；若仍无法打开，请在任务管理器的“详细信息”中结束 message-island.exe 后重试。", "已有实例可能正在启动或已无响应。请稍后重试；若仍无法打开，请在任务管理器的“详细信息”中结束 message-island.exe，再重新启动。");
+            diagnostics::report("爱尔栏已在运行，但暂时无法打开窗口。\n请稍后重试；若仍无法打开，请在任务管理器的“详细信息”中结束 message-island.exe 后重试。", "已有实例可能正在启动或已无响应。请稍后重试；若仍无法打开，请在任务管理器的“详细信息”中结束 message-island.exe，再重新启动。");
         }
         return Ok(());
     }

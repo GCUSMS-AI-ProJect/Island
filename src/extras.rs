@@ -67,7 +67,7 @@ impl Alert {
 fn reminder_module(title:&str)->Option<usize> {
     use crate::app::*;
     match title {
-        "Island已暂停音乐功能"=>Some(MUSIC_PAGE),
+        "爱尔栏已暂停音乐功能"=>Some(MUSIC_PAGE),
         "专注计时"=>Some(FOCUS_PAGE),
         "喝水时间到了"|SIT_TITLE|"今日饮水目标达成"=>Some(WATER_PAGE),
         "待办到时间了"=>Some(TODO_PAGE),
@@ -1144,7 +1144,7 @@ impl App {
             0=>{
                 let choices=[("吉祥物",self.settings.pet),("极简刘海",self.settings.minimal),("系统提示",self.settings.system_hud),("全屏隐藏",self.settings.hide_fullscreen)];
                 for (i,(name,on)) in choices.iter().enumerate(){let x=42.0+(i%2) as f32*169.0;let y=57.0+(i/2) as f32*27.0;let text=format!("{}  {}",name,if *on{"开"}else{"关"});if setting_button(c,x,y,158.0,&text,*on,&format!("general-{i}")){match i{0=>self.set_pet(!self.settings.pet),1=>self.set_minimal(!self.settings.minimal),2=>self.settings.system_hud=!self.settings.system_hud,_=>self.settings.hide_fullscreen=!self.settings.hide_fullscreen}}}
-                c.text(42.0,116.0,"Island收起时常驻；极简模式保留细线",10.5,W::Regular,theme::GRAY,H::Left);
+                c.text(42.0,116.0,"爱尔栏收起时常驻；极简模式保留细线",10.5,W::Regular,theme::GRAY,H::Left);
             }
             1 if self.health_time=>self.health_time_page(c),
             1=>{
@@ -1220,14 +1220,37 @@ impl App {
     }
 }
 
+/// 开关：圆点用弹簧滑动（略带回弹），底色从灰渐变到强调色；按住时圆点拉长，悬停时外圈一圈淡光。
 fn switch(ui:&mut egui::Ui,value:&mut bool)->bool {
-    let (rect,response)=ui.allocate_exact_size(egui::vec2(34.0,20.0),egui::Sense::click());
+    let ctx=ui.ctx().clone();
+    let (rect,response)=ui.allocate_exact_size(egui::vec2(SETTINGS_SWITCH_W,20.0),egui::Sense::click());
     if response.clicked(){*value=!*value;}
-    let fill=if *value{Color32::from_rgb(48,184,92)}else{settings_color(&ui.ctx().clone(),Color32::from_rgb(82,82,87),Color32::from_rgb(203,207,214))};
-    ui.painter().rect_filled(rect,10.0,fill);
-    let x=if *value{rect.right()-10.0}else{rect.left()+10.0};
-    ui.painter().circle_filled(egui::pos2(x,rect.center().y+0.5),7.5,Color32::from_black_alpha(35));
-    ui.painter().circle_filled(egui::pos2(x,rect.center().y),7.0,Color32::WHITE);
+    response.widget_info(||egui::WidgetInfo::selected(egui::WidgetType::Checkbox,ui.is_enabled(),*value,""));
+    let target=if *value{1.0}else{0.0};
+    let t=crate::settings_theme::spring(&ctx,response.id.with("switch-pos"),target,420.0,0.62);
+    let hover=ctx.animate_bool_with_time(response.id.with("switch-hover"),response.hovered(),0.14);
+    let press=ctx.animate_bool_with_time(response.id.with("switch-press"),response.is_pointer_button_down_on(),0.10);
+    // 测试按开关圆点位置判断状态，测试中直接落到终点。
+    let (t,press)=if cfg!(test){(target,0.0)}else{(t,press)};
+    let off=settings_color(&ctx,Color32::from_rgb(78,78,84),Color32::from_rgb(208,211,219));
+    let accent=crate::settings_theme::accent(&ctx);
+    let painter=ui.painter();
+    if hover>0.0 {
+        painter.rect_filled(rect.expand(3.0),13.5,crate::settings_theme::mix(Color32::TRANSPARENT,accent.gamma_multiply(0.18),hover));
+    }
+    painter.rect_filled(rect,10.0,crate::settings_theme::mix(off,accent,t.clamp(0.0,1.0)));
+    let r=7.0;let stretch=4.0*press;
+    let travel=rect.width()-2.0*(r+3.0)-stretch;
+    let left=rect.left()+3.0+travel*t;
+    if stretch<0.05 {
+        let c=egui::pos2(left+r,rect.center().y);
+        painter.circle_filled(c+egui::vec2(0.0,0.6),r+0.5,Color32::from_black_alpha(40));
+        painter.circle_filled(c,r,Color32::WHITE);
+    } else {
+        let knob=egui::Rect::from_min_size(egui::pos2(left,rect.center().y-r),egui::vec2(2.0*r+stretch,2.0*r));
+        painter.rect_filled(knob.translate(egui::vec2(0.0,0.6)),r,Color32::from_black_alpha(40));
+        painter.rect_filled(knob,r,Color32::WHITE);
+    }
     response.clicked()
 }
 /// 设置页版式：标签列宽、开关尺寸、控件与卡片右边缘之间的固定留白。
@@ -1265,6 +1288,42 @@ fn resident_setting_row(ui:&mut egui::Ui,title:&str,description:&str,module_on:b
 pub(crate) fn settings_segmented<T:PartialEq+Copy>(ui:&mut egui::Ui,value:&mut T,options:&[(T,&str)],item_w:f32)->bool{
     let ctx=&ui.ctx().clone();
     let mut changed=false;
+    let font=egui::FontId::proportional(12.0);
+    let widths:Vec<f32>=options.iter().map(|(_,label)|item_w.max(ctx.fonts(|f|f.layout_no_wrap(label.to_string(),font.clone(),Color32::WHITE).size().x)+20.0)).collect();
+    let gap=2.0;
+    let total=widths.iter().sum::<f32>()+gap*(widths.len().saturating_sub(1)) as f32+6.0;
+    // 一行放得下时：自己绘制，选中块用弹簧滑到新位置；放不下时退回可换行的按钮排布。
+    if total<=ui.available_width() && !options.is_empty() {
+        let (rect,_)=ui.allocate_exact_size(egui::vec2(total,32.0),egui::Sense::hover());
+        let track=settings_color(ctx,Color32::from_rgb(28,28,32),Color32::from_rgb(231,233,240));
+        ui.painter().rect_filled(rect,9.0,track);
+        let mut x=rect.left()+3.0;
+        let mut cells=Vec::with_capacity(options.len());
+        for w in &widths {cells.push(egui::Rect::from_min_size(egui::pos2(x,rect.top()+3.0),egui::vec2(*w,26.0)));x+=w+gap;}
+        let selected=options.iter().position(|(o,_)|*o==*value);
+        let base=ui.id().with(("settings-segmented",options.len(),item_w.to_bits()));
+        let thumb_bg=ui.painter().add(egui::Shape::Noop);
+        for (i,((option,label),cell)) in options.iter().zip(&cells).enumerate() {
+            let response=ui.interact(*cell,base.with(i),egui::Sense::click()).on_hover_cursor(egui::CursorIcon::PointingHand);
+            response.widget_info(||egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel,ui.is_enabled(),selected==Some(i),*label));
+            let hover=ctx.animate_bool_with_time(response.id.with("hover"),response.hovered()&&selected!=Some(i),0.12);
+            if hover>0.0 {ui.painter().rect_filled(*cell,7.0,settings_color(ctx,Color32::from_white_alpha(10),Color32::from_black_alpha(8)).gamma_multiply(hover));}
+            let on=selected==Some(i);
+            let fg=if on{settings_color(ctx,Color32::WHITE,Color32::from_rgb(30,34,41))}else{settings_color(ctx,Color32::from_gray(185),Color32::from_gray(85))};
+            ui.painter().text(cell.center(),egui::Align2::CENTER_CENTER,*label,font.clone(),if ui.is_enabled(){fg}else{fg.gamma_multiply(0.5)});
+            if response.clicked() && !on {*value=*option;changed=true;}
+        }
+        if let Some(i)=selected {
+            let left=crate::settings_theme::spring(ctx,base.with("thumb-x"),cells[i].left()-rect.left(),380.0,0.78);
+            let width=crate::settings_theme::spring(ctx,base.with("thumb-w"),cells[i].width(),380.0,0.9);
+            let thumb=egui::Rect::from_min_size(egui::pos2(rect.left()+left,cells[i].top()),egui::vec2(width,26.0));
+            let dark=ui.visuals().dark_mode;
+            let mut shapes=vec![egui::Shape::from(egui::epaint::RectShape::filled(thumb.translate(egui::vec2(0.0,1.0)).expand(0.5),7.0,Color32::from_black_alpha(if dark{80}else{22})))];
+            shapes.push(egui::Shape::from(egui::epaint::RectShape::filled(thumb,7.0,settings_color(ctx,Color32::from_rgb(70,70,78),Color32::WHITE))));
+            ui.painter().set(thumb_bg,egui::Shape::Vec(shapes));
+        }
+        return changed;
+    }
     egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(28,28,30),Color32::from_rgb(230,233,238)))
         .corner_radius(8.0).inner_margin(3).show(ui,|ui|{
             ui.horizontal_wrapped(|ui|{
@@ -1312,10 +1371,14 @@ pub(crate) fn settings_hint(ui:&mut egui::Ui,text:&str){
     let ctx=&ui.ctx().clone();
     ui.add(egui::Label::new(egui::RichText::new(text).size(11.5).color(settings_color(ctx,Color32::from_gray(170),Color32::from_gray(92)))).wrap());
 }
+/// 卡片：大圆角、发丝描边和很淡的投影，浅色模式像一张浮起的纸片，深色模式靠描边勾出边界。
 pub(crate) fn settings_card(ui:&mut egui::Ui,add:impl FnOnce(&mut egui::Ui)) {
     let ctx=&ui.ctx().clone();
-    egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(35,35,38),Color32::from_rgb(255,255,255)))
-        .corner_radius(10.0).inner_margin(egui::Margin::symmetric(16,12))
+    let dark=ctx.style().visuals.dark_mode;
+    egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(34,34,39),Color32::from_rgb(255,255,255)))
+        .stroke(egui::Stroke::new(1.0,settings_color(ctx,Color32::from_rgb(48,48,56),Color32::from_rgb(232,233,240))))
+        .shadow(egui::Shadow{offset:[0,2],blur:if dark{0}else{10},spread:0,color:Color32::from_black_alpha(if dark{0}else{12})})
+        .corner_radius(12.0).inner_margin(egui::Margin::symmetric(16,13))
         .show(ui,|ui|{ui.set_min_width(ui.available_width());ui.spacing_mut().item_spacing.y=8.0;add(ui);});
 }
 
@@ -1375,7 +1438,24 @@ pub(crate) fn settings_apply_style(ui:&mut egui::Ui){
             w.bg_stroke=egui::Stroke::NONE;
         }
     }
-    ui.visuals_mut().selection.bg_fill=settings_color(ctx,Color32::from_rgb(45,105,165),Color32::from_rgb(209,226,248));
+    // 选中文字、滑块已走过的一段、单选框都用强调色系。
+    ui.visuals_mut().selection.bg_fill=settings_color(ctx,Color32::from_rgb(72,68,150),Color32::from_rgb(206,203,252));
+    ui.visuals_mut().selection.stroke=egui::Stroke::new(1.0,crate::settings_theme::accent(ctx));
+    ui.visuals_mut().slider_trailing_fill=true;
+    ui.visuals_mut().hyperlink_color=crate::settings_theme::accent(ctx);
+    // 输入框聚焦时一圈强调色描边。
+    ui.visuals_mut().widgets.active.bg_stroke=egui::Stroke::NONE;
+    ui.visuals_mut().text_cursor.stroke=egui::Stroke::new(2.0,crate::settings_theme::accent(ctx));
+}
+
+/// 主按钮：强调色底、白字；用于「开启」等推荐操作。
+pub(crate) fn settings_primary_button(ui:&mut egui::Ui,text:&str)->egui::Response{
+    let ctx=ui.ctx().clone();
+    let id=ui.next_auto_id();
+    let hover=ctx.animate_bool_with_time(id.with("primary-hover"),ctx.read_response(id).is_some_and(|r|r.hovered()),0.12);
+    let fill=crate::settings_theme::mix(crate::settings_theme::accent(&ctx),settings_color(&ctx,Color32::from_rgb(150,145,255),Color32::from_rgb(74,66,214)),hover);
+    ui.add(egui::Button::new(egui::RichText::new(text).color(crate::settings_theme::ON_ACCENT).strong()).fill(fill).stroke(egui::Stroke::NONE).corner_radius(14.0))
+        .on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 /// 设置页弹窗的外框：卡片底色、大圆角、细描边和阴影。
 pub(crate) fn settings_modal_frame(ctx:&egui::Context)->egui::Frame{
@@ -1539,7 +1619,7 @@ pub(crate) const SETTINGS_TAB_PLUGIN_DETAIL: usize = 18;
 /// 插件和关于固定在左下角，上方一条细线和功能页分开。
 /// 第四列是这一项之前的分组标题。
 const SETTINGS_GROUPS: [(&str,usize,usize,&str);15 + cfg!(feature="sdk-js") as usize] = [
-    ("通用",0,0,"Island"), ("外观",SETTINGS_TAB_APPEARANCE,SETTINGS_TAB_APPEARANCE,""), ("位置",SETTINGS_TAB_POSITION,SETTINGS_TAB_POSITION,""), ("页面管理",SETTINGS_TAB_PAGES,SETTINGS_TAB_PAGES,""),
+    ("通用",0,0,"AirLand"), ("外观",SETTINGS_TAB_APPEARANCE,SETTINGS_TAB_APPEARANCE,""), ("位置",SETTINGS_TAB_POSITION,SETTINGS_TAB_POSITION,""), ("页面管理",SETTINGS_TAB_PAGES,SETTINGS_TAB_PAGES,""),
     ("音乐",1,1,"功能"), ("专注与健康",2,3,""), ("待办与置物",4,5,""), ("消息提醒",6,6,""), ("邮箱",7,7,""), ("日程",8,8,""), ("AI 额度",11,11,""), ("天气",12,12,""), ("系统性能",15,15,""), ("无线设备",SETTINGS_TAB_WIRELESS,SETTINGS_TAB_WIRELESS,""),
     #[cfg(feature="sdk-js")] ("插件",SETTINGS_TAB_PLUGINS,SETTINGS_TAB_PLUGINS,""),
     ("关于",9,9,""),
@@ -1559,16 +1639,18 @@ fn settings_sidebar_row(
 ) -> egui::Response {
     let ctx = ui.ctx().clone();
     let (rect, response) = ui.allocate_exact_size(egui::vec2(ui.available_width(), row_h), egui::Sense::click());
+    let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), name));
-    if selected || response.hovered() {
-        let fill = if selected {
-            settings_color(&ctx, Color32::from_rgb(43,43,46), Color32::from_rgb(214,221,232))
-        } else {
-            settings_color(&ctx, Color32::from_rgb(30,30,33), Color32::from_rgb(225,230,238))
-        };
-        ui.painter().rect_filled(rect, 7.0, fill);
+    // 悬停底色淡入淡出；选中块由侧栏统一绘制（会滑动到新位置），这里只登记位置。
+    let hover = ctx.animate_bool_with_time(response.id.with("sidebar-hover"), response.hovered() && !selected, 0.14);
+    if hover > 0.0 {
+        let fill = settings_color(&ctx, Color32::from_white_alpha(9), Color32::from_black_alpha(9));
+        ui.painter().rect_filled(rect, 8.0, fill.gamma_multiply(hover));
     }
-    let icon_bg = egui::Rect::from_center_size(egui::pos2(rect.left()+21.0,rect.center().y),egui::vec2(23.0,23.0));
+    if selected { ctx.data_mut(|d| d.insert_temp(egui::Id::new(SIDEBAR_SELECTED), rect)); }
+    // 选中时图标轻轻放大一点，跟着弹簧回弹。
+    let pop = crate::settings_theme::spring(&ctx, response.id.with("sidebar-pop"), if selected {1.0} else {0.0}, 300.0, 0.55);
+    let icon_bg = egui::Rect::from_center_size(egui::pos2(rect.left()+21.0,rect.center().y),egui::vec2(23.0,23.0)*(1.0+0.08*pop));
     #[cfg(feature="sdk-js")]
     let use_default_icon = if let Some(navigation_icon) = navigation_icon {
         let painter = ui.painter();
@@ -1588,15 +1670,47 @@ fn settings_sidebar_row(
         else { egui::Image::new(icon).paint_at(ui, icon_bg); }
     }
     let color = if selected {
-        settings_color(&ctx, Color32::WHITE, Color32::from_rgb(30,34,41))
+        settings_color(&ctx, Color32::WHITE, Color32::from_rgb(40,34,120))
     } else {
-        settings_color(&ctx, Color32::from_gray(225), Color32::from_gray(55))
+        settings_color(&ctx, Color32::from_gray(215), Color32::from_gray(60))
     };
+    // 文字随选中状态右移 2px，配合选中块一起「推」出来。
     ui.painter().with_clip_rect(rect.shrink2(egui::vec2(5.0,0.0))).text(
-        egui::pos2(rect.left()+40.0,rect.center().y), egui::Align2::LEFT_CENTER, name,
+        egui::pos2(rect.left()+40.0+2.0*pop,rect.center().y), egui::Align2::LEFT_CENTER, name,
         egui::FontId::proportional(13.0), color,
     );
     response
+}
+
+const SIDEBAR_SELECTED: &str = "settings-sidebar-selected-rect";
+
+/// 侧栏选中块：位置和高度用弹簧追随选中项，切换时从旧位置滑过去；左侧一条强调色短竖条。
+/// `slot` 是提前占好的绘制位置，保证选中块画在文字和图标下面。
+fn take_sidebar_selected(ctx: &egui::Context) -> Option<egui::Rect> {
+    let id = egui::Id::new(SIDEBAR_SELECTED);
+    ctx.data_mut(|d| { let rect = d.get_temp::<egui::Rect>(id); d.remove::<egui::Rect>(id); rect })
+}
+fn paint_sidebar_pill(ui: &egui::Ui, slot: egui::layers::ShapeIdx, key: &str, origin: f32, selected: Option<egui::Rect>) {
+    let ctx = ui.ctx();
+    let id = egui::Id::new(("settings-sidebar-pill", key));
+    // 选中项离开这一区时，选中块在原处淡出；回到这一区时从上次的位置滑过去。
+    if let Some(rect) = selected { ctx.data_mut(|d| d.insert_temp(id.with("last"), rect.translate(egui::vec2(0.0, -origin)))); }
+    let alpha = ctx.animate_bool_with_time(id.with("alpha"), selected.is_some(), 0.16);
+    let Some(target) = ctx.data(|d| d.get_temp::<egui::Rect>(id.with("last"))).map(|r| r.translate(egui::vec2(0.0, origin))) else { return; };
+    if alpha <= 0.0 { return; }
+    let y = crate::settings_theme::spring(ctx, id.with("y"), target.top() - origin, 360.0, 0.74);
+    let h = crate::settings_theme::spring(ctx, id.with("h"), target.height(), 360.0, 0.9);
+    let pill = egui::Rect::from_min_size(egui::pos2(target.left(), origin + y), egui::vec2(target.width(), h));
+    let accent = crate::settings_theme::accent(ctx);
+    let fill = crate::settings_theme::accent_soft(ctx);
+    // 指示条长度随移动速度略微伸长，移动时更有「拖尾」感。
+    let speed = ((target.top() - origin) - y).abs().min(40.0) / 40.0;
+    let bar_h = (h * 0.5) * (1.0 + 0.35 * speed);
+    let bar = egui::Rect::from_center_size(egui::pos2(pill.left() + 2.5, pill.center().y), egui::vec2(3.0, bar_h));
+    ui.painter().set(slot, egui::Shape::Vec(vec![
+        egui::epaint::RectShape::filled(pill, 8.0, fill.gamma_multiply(alpha)).into(),
+        egui::epaint::RectShape::filled(bar, 1.5, accent.gamma_multiply(alpha)).into(),
+    ]));
 }
 
 impl App {
@@ -1676,7 +1790,7 @@ impl App {
                 });
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center),|ui|{
                     // 每个功能卡片同一个位置：开着时「打开」跳到岛上对应页面，关着时「开启」。
-                    if on {open=ui.button("打开").on_hover_text(format!("在岛上打开「{}」",PAGE_NAMES[page])).clicked();extra(self,ui);} else {enable=ui.button("开启").clicked();}
+                    if on {open=ui.button("打开").on_hover_text(format!("在岛上打开「{}」",PAGE_NAMES[page])).clicked();extra(self,ui);} else {enable=settings_primary_button(ui,"开启").clicked();}
                     settings_state_chip(ui,on);
                 });
             });
@@ -1705,7 +1819,7 @@ impl App {
         let id=egui::ViewportId::from_hash_of("island-settings");
         let focus_requested=std::mem::take(&mut self.settings_focus_requested);
         let opening=self.window_layout().open();
-        ctx.show_viewport_immediate(id,egui::ViewportBuilder::default().with_title("Island设置").with_icon(theme::app_icon()).with_inner_size([690.0,560.0]).with_min_inner_size([600.0,450.0]).with_visible(false).with_active(false).with_window_level(egui::WindowLevel::Normal),|ctx,_|{
+        ctx.show_viewport_immediate(id,egui::ViewportBuilder::default().with_title("爱尔栏设置").with_icon(theme::app_icon()).with_inner_size([690.0,560.0]).with_min_inner_size([600.0,450.0]).with_visible(false).with_active(false).with_window_level(egui::WindowLevel::Normal),|ctx,_|{
             let restored=opening && self.window_layout().restore(ctx);
             if !restored{self.window_layout().observe(ctx);}
             let dark=self.settings.settings_theme.dark(crate::settings_theme::system_dark(ctx));
@@ -1740,7 +1854,7 @@ impl App {
                 self.settings_tab = SETTINGS_TAB_PLUGINS;
                 self.settings_plugin = None;
             }
-            egui::SidePanel::left("settings-sidebar").resizable(false).exact_width(180.0).frame(egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(29,29,32),Color32::from_rgb(237,239,243))).stroke(egui::Stroke::NONE).inner_margin(egui::Margin::symmetric(10,12))).show(ctx,|ui|{
+            egui::SidePanel::left("settings-sidebar").resizable(false).exact_width(180.0).frame(egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(24,24,29),Color32::from_rgb(238,239,246))).stroke(egui::Stroke::NONE).inner_margin(egui::Margin::symmetric(10,12))).show(ctx,|ui|{
                 ui.add_space(2.0);
                 let per=(ui.available_height()-80.0)/(SETTINGS_GROUPS.len()+plugin_pages.len()) as f32;
                 let row_h=(per-6.0).clamp(20.0,32.0);
@@ -1750,11 +1864,23 @@ impl App {
                 let main_height = (ui.available_height()-footer_height).max(0.0);
                 egui::ScrollArea::vertical().id_salt("settings-sidebar-scroll").max_height(main_height)
                     .auto_shrink([false,false]).show(ui, |ui| {
+                        let pill = ui.painter().add(egui::Shape::Noop);
+                        let origin = ui.min_rect().top();
+                        let _ = take_sidebar_selected(ui.ctx());
                         for &(name, start, end, section) in main {
                             if !section.is_empty() {
                                 ui.add_space(if start == 0 { 2.0 } else { 8.0 });
                                 let color = settings_color(ui.ctx(), Color32::from_gray(150), Color32::from_gray(105));
-                                ui.label(egui::RichText::new(section).size(11.0).color(color));
+                                if start == 0 {
+                                    // 顶部品牌字样：AirLand 用强调色，后接中文名。
+                                    ui.horizontal(|ui| {
+                                        ui.spacing_mut().item_spacing.x = 5.0;
+                                        ui.label(egui::RichText::new(section).size(14.0).strong().color(crate::settings_theme::accent(ui.ctx())));
+                                        ui.label(egui::RichText::new("爱尔栏").size(11.0).color(color));
+                                    });
+                                } else {
+                                    ui.label(egui::RichText::new(section).size(11.0).color(color));
+                                }
                                 ui.add_space(3.0);
                             }
                             #[cfg(feature="sdk-js")]
@@ -1778,16 +1904,22 @@ impl App {
                             }
                             self.settings_sidebar_builtin(ui, (name, start, end), row_h, row_gap);
                         }
+                        let selected = take_sidebar_selected(ui.ctx());
+                        paint_sidebar_pill(ui, pill, "main", origin, selected);
                     });
                 ui.add_space(4.0);
                 ui.painter().hline(ui.max_rect().x_range().shrink(4.0), ui.cursor().top(), egui::Stroke::new(1.0,
                     settings_color(ctx, Color32::from_rgb(46,46,51), Color32::from_rgb(218,222,229))));
                 ui.add_space(9.0);
+                let pill = ui.painter().add(egui::Shape::Noop);
+                let origin = ui.cursor().top();
                 for &(name, start, end, _) in bottom {
                     self.settings_sidebar_builtin(ui, (name, start, end), row_h, row_gap);
                 }
+                let selected = take_sidebar_selected(ui.ctx());
+                paint_sidebar_pill(ui, pill, "bottom", origin, selected);
             });
-            egui::CentralPanel::default().frame(egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(25,25,27),Color32::from_rgb(246,247,249))).inner_margin(egui::Margin::symmetric(22,16))).show(ctx,|ui|{
+            egui::CentralPanel::default().frame(egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(19,19,23),Color32::from_rgb(246,247,251))).inner_margin(egui::Margin::symmetric(22,16))).show(ctx,|ui|{
                 settings_apply_style(ui);
                 #[cfg(feature="sdk-js")]
                 let plugin = plugin_pages.iter().find(|(id, _)| {
@@ -1797,7 +1929,7 @@ impl App {
                 #[cfg(feature="sdk-js")]
                 let title = plugin.map_or(title, |(_, name)| name.as_str());
                 ui.horizontal(|ui|{
-                    let label = egui::RichText::new(title).size(18.0).strong()
+                    let label = egui::RichText::new(title).size(20.0).strong()
                         .color(settings_color(ctx,Color32::WHITE,Color32::from_rgb(30,34,41)));
                     #[cfg(feature="sdk-js")]
                     if let Some((id, _)) = plugin {
@@ -1837,9 +1969,26 @@ impl App {
                     else { scroll.id_salt(("settings-scroll",tab)) };
                 #[cfg(not(feature="sdk-js"))]
                 let scroll = scroll.id_salt(("settings-scroll",tab));
+                // 切换分页时内容淡入并从下方 10px 滑上来（测试按可见文字点击，测试中不做过渡）。
+                #[cfg(feature="sdk-js")]
+                let plugin_key=plugin.map_or(0,|(id,_)|egui::Id::new(id).value());
+                #[cfg(not(feature="sdk-js"))]
+                let plugin_key=0u64;
+                let enter={
+                    let key=egui::Id::new("settings-page-enter");
+                    let page_key=((tab as u64)<<32)^plugin_key;
+                    let now=ctx.input(|i|i.time);
+                    let (last,since)=ctx.data(|d|d.get_temp::<(u64,f64)>(key)).unwrap_or((page_key,f64::NEG_INFINITY));
+                    let since=if last!=page_key{now}else{since};
+                    ctx.data_mut(|d|d.insert_temp(key,(page_key,since)));
+                    let t=crate::anim::ease_out_cubic(((now-since)/0.24).clamp(0.0,1.0) as f32);
+                    if t<1.0 {ctx.request_repaint();}
+                    if cfg!(test){1.0}else{t}
+                };
                 scroll.show(ui,|ui|{
                     // 右侧给滚动条留出空隙，卡片和开关不会被它压住。
                     ui.set_width((ui.available_width()-12.0).max(240.0));
+                    if enter<1.0 {ui.multiply_opacity(0.25+0.75*enter);ui.add_space(10.0*(1.0-enter));}
                     #[cfg(feature="sdk-js")]
                     if let Some((id, _)) = plugin {
                         self.plugins.standalone_settings(ui, id);
@@ -2015,7 +2164,7 @@ impl App {
                             setting_row(ui,"开机启动","",&mut a);
                             if a!=autostart{self.pending.push(Cmd::ToggleAutostart);}
                             ui.separator();
-                            setting_row(ui,"全屏时隐藏","全屏隐藏Island，健康提醒静默保留",&mut self.settings.hide_fullscreen);
+                            setting_row(ui,"全屏时隐藏","全屏隐藏爱尔栏，健康提醒静默保留",&mut self.settings.hide_fullscreen);
                             ui.separator();
                             #[cfg(windows)]
                             let supported = crate::native::Window::capture_exclusion_supported();
@@ -2027,16 +2176,16 @@ impl App {
                             let material_forced = false;
                             let mut enabled = self.settings.exclude_from_capture || material_forced;
                             ui.add_enabled_ui(supported && !material_forced, |ui| {
-                                setting_row(ui, "在截图和录屏中隐藏Island", "桌面上照常显示，支持的截图和录屏工具会略过Island。", &mut enabled);
+                                setting_row(ui, "在截图和录屏中隐藏爱尔栏", "桌面上照常显示，支持的截图和录屏工具会略过爱尔栏。", &mut enabled);
                             });
                             if material_forced {
-                                settings_hint(ui,"材质生效时需隐藏Island自身，才能读取它背后的画面。停用材质后恢复原设置。");
+                                settings_hint(ui,"材质生效时需隐藏爱尔栏自身，才能读取它背后的画面。停用材质后恢复原设置。");
                             } else if enabled != self.settings.exclude_from_capture {
                                 self.capture_exclusion_request = Some(enabled);
                                 self.capture_exclusion_error = None;
                             }
                             let error = self.capture_exclusion_error.as_deref()
-                                .or((!supported).then_some("当前系统不支持在截图和录屏中隐藏Island。"));
+                                .or((!supported).then_some("当前系统不支持在截图和录屏中隐藏爱尔栏。"));
                             if let Some(error) = error {
                                 ui.add(egui::Label::new(egui::RichText::new(error).size(11.5)
                                     .color(settings_color(ctx, Color32::from_rgb(238,181,91), Color32::from_rgb(139,88,12)))).wrap());
@@ -2047,7 +2196,7 @@ impl App {
                         settings_card(ui,|ui|{
                             settings_advanced(ui,"settings-general-advanced",|ui|{
                                 let before=self.settings.render_compat;
-                                setting_row(ui,"兼容渲染（Direct3D 12）","出现黑框、闪烁或打开设置后崩溃时开启；切换后重启Island生效",&mut self.settings.render_compat);
+                                setting_row(ui,"兼容渲染（Direct3D 12）","出现黑框、闪烁或打开设置后崩溃时开启；切换后重启爱尔栏生效",&mut self.settings.render_compat);
                                 // 手动关闭后不再显示自动切换的原因；再次开启视为手动开启。
                                 if before!=self.settings.render_compat {self.settings.render_compat_reason.clear();}
                                 if !self.settings.render_compat_reason.is_empty() {settings_hint(ui,&self.settings.render_compat_reason);}
@@ -2055,7 +2204,7 @@ impl App {
                             // 待重启的提示不折叠，收起「高级」也能看到。
                             if self.settings.render_compat!=self.render_compat_running {
                                 ui.horizontal(|ui|{
-                                    ui.label(egui::RichText::new("兼容渲染重启Island后生效").size(12.0).color(Color32::from_rgb(230,150,40)));
+                                    ui.label(egui::RichText::new("兼容渲染重启爱尔栏后生效").size(12.0).color(Color32::from_rgb(230,150,40)));
                                     if ui.button("立即重启").clicked(){self.pending.push(Cmd::RestartApp);}
                                 });
                             }
@@ -2113,7 +2262,7 @@ impl App {
                             if minimal!=self.settings.minimal {self.set_minimal(minimal);}
                             ui.separator();
                             let mut pet=self.settings.pet;
-                            setting_row(ui,"Island吉祥物","收起时常驻，播放音乐时一起唱歌",&mut pet);
+                            setting_row(ui,"爱尔栏吉祥物","收起时常驻，播放音乐时一起唱歌",&mut pet);
                             if pet!=self.settings.pet {self.set_pet(pet);}
                             #[cfg(feature="sdk-js")]
                             self.plugins.appearance_picker(ui,crate::sdk_spike::local::appearance_assets::Kind::Pet,None);
@@ -2164,7 +2313,7 @@ impl App {
                             setting_row(ui,"顶栏适配","顶部有菜单栏或任务栏时使用",&mut self.settings.avoid_top_bar);
                             if self.settings.avoid_top_bar {
                                 settings_control_row_right(ui,"显示方式",|ui|{
-                                    settings_segmented(ui,&mut self.settings.top_bar_on_top,&[(false,"避开顶栏"),(true,"Island置顶")],90.0);
+                                    settings_segmented(ui,&mut self.settings.top_bar_on_top,&[(false,"避开顶栏"),(true,"爱尔栏置顶")],90.0);
                                 });
                                 if self.settings.top_bar_on_top {
                                     settings_hint(ui,"岛体显示在顶栏上方。");
@@ -2172,7 +2321,7 @@ impl App {
                                     let reserved=crate::display_layout::selected(&self.displays,&self.settings.display_id).map_or(0,|d|{
                                         let b=crate::display_layout::placement_bounds(d,true);(b.top-d.bounds.top).max(0)
                                     });
-                                    settings_hint(ui,&if reserved>0 {format!("已检测到顶栏，岛体下移 {reserved} 像素。")}else{"未检测到顶栏；没有向系统登记的顶栏可尝试“Island置顶”。".to_string()});
+                                    settings_hint(ui,&if reserved>0 {format!("已检测到顶栏，岛体下移 {reserved} 像素。")}else{"未检测到顶栏；没有向系统登记的顶栏可尝试“爱尔栏置顶”。".to_string()});
                                 }
                             }
                         });
@@ -2386,7 +2535,7 @@ impl App {
                             ui.separator();
                             let sync_before=self.settings.mail_sync_operations;
                             ui.add_enabled_ui(self.mail.manage.pending.is_empty(),|ui|{
-                                setting_row(ui,"同步邮件操作到邮箱","已读、删除和恢复同步到邮箱；关闭时只整理Island里的记录，切换不会补交之前的操作",&mut self.settings.mail_sync_operations);
+                                setting_row(ui,"同步邮件操作到邮箱","已读、删除和恢复同步到邮箱；关闭时只整理爱尔栏里的记录，切换不会补交之前的操作",&mut self.settings.mail_sync_operations);
                             });
                             if sync_before!=self.settings.mail_sync_operations{self.mail_manage_mode_changed();}
                             ui.separator();
@@ -2725,7 +2874,7 @@ impl App {
                         }
                     }
                     _=>{
-                        settings_label(ui,"Island");
+                        settings_label(ui,"AirLand 爱尔栏");
                         settings_card(ui,|ui|{
                             ui.horizontal(|ui|{
                                 ui.label(egui::RichText::new(format!("版本 {}",env!("CARGO_PKG_VERSION"))).size(13.0));
@@ -2736,7 +2885,7 @@ impl App {
                                 if ui.button("打开本地数据目录").clicked(){self.pending.push(Cmd::Open(crate::model::config_dir()));}
                                 if ui.button("收集诊断").clicked(){
                                     // 另起 `message-island.exe --collect-diagnostics`：在新窗口里收集，诊断包保存到桌面并自动选中。
-                                    if crate::diagnostics_tool::launch().is_err(){self.say("无法启动诊断收集，请从开始菜单打开「收集Island诊断」");}
+                                    if crate::diagnostics_tool::launch().is_err(){self.say("无法启动诊断收集，请从开始菜单打开「收集爱尔栏诊断」");}
                                 }
                                 ui.label(egui::RichText::new("设备图标：Solar Icons · 480 Design").size(11.0).color(settings_color(ctx,Color32::from_gray(150),Color32::from_gray(105))));
                                 ui.hyperlink_to("CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/");

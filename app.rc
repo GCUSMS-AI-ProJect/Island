@@ -13,10 +13,10 @@ BEGIN
     BEGIN
         BLOCK "080404b0"
         BEGIN
-            VALUE "FileDescription", "Island"
-            VALUE "InternalName", "Island"
+            VALUE "FileDescription", "AirLand 爱尔栏"
+            VALUE "InternalName", "AirLand"
             VALUE "OriginalFilename", "message-island.exe"
-            VALUE "ProductName", "Island"
+            VALUE "ProductName", "AirLand"
             VALUE "ProductVersion", "0.6.70"
             VALUE "FileVersion", "0.6.70"
         END

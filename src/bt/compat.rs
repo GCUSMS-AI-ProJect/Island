@@ -36,10 +36,10 @@ impl Package {
     pub(crate) fn parse(raw: &[u8]) -> Result<Self, &'static str> {
         let manifest: Manifest = serde_json::from_slice(raw).map_err(|_| "兼容包格式无效")?;
         if manifest.id != PACKAGE_ID {
-            return Err("此文件不是Island无线设备兼容包");
+            return Err("此文件不是爱尔栏无线设备兼容包");
         }
         if manifest.api_version != API_VERSION {
-            return Err("当前Island版本不支持此兼容包接口");
+            return Err("当前爱尔栏版本不支持此兼容包接口");
         }
         if !valid_text(&manifest.version, 32) {
             return Err("兼容包版本无效");

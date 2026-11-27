@@ -283,7 +283,7 @@ fn build_fonts()->FontDefinitions {
 pub fn app_icon()->std::sync::Arc<eframe::egui::IconData>{
     static ICON:std::sync::OnceLock<std::sync::Arc<eframe::egui::IconData>>=std::sync::OnceLock::new();
     ICON.get_or_init(||{
-        let image=image::load_from_memory(include_bytes!("../assets/island-logo.png")).expect("Island图标资源应有效").thumbnail(128,128).to_rgba8();
+        let image=image::load_from_memory(include_bytes!("../assets/island-logo.png")).expect("爱尔栏图标资源应有效").thumbnail(128,128).to_rgba8();
         std::sync::Arc::new(eframe::egui::IconData{width:image.width(),height:image.height(),rgba:image.into_raw()})
     }).clone()
 }

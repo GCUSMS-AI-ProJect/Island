@@ -10,10 +10,15 @@ Unicode true
   !define APP_ID "Island"
 !endif
 !ifndef APP_NAME
-  !define APP_NAME "Island"
+  !define APP_NAME "爱尔栏"
 !endif
+!ifndef APP_DISPLAY
+  !define APP_DISPLAY "AirLand 爱尔栏"
+!endif
+; 改名前的快捷方式名称，升级时清理。APP_ID、安装目录和注册表键保持不变，原地升级不丢设置。
+!define LEGACY_NAME "Island"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}"
-Name "${APP_NAME}"
+Name "${APP_DISPLAY}"
 OutFile "${OUTPUT_FILE}"
 InstallDir "$LOCALAPPDATA\Programs\${APP_ID}"
 InstallDirRegKey HKCU "${UNINSTALL_KEY}" "InstallLocation"
@@ -21,10 +26,10 @@ RequestExecutionLevel user
 ManifestDPIAware true
 SetCompressor /SOLID lzma
 VIProductVersion "${APP_VERSION}.0"
-VIAddVersionKey /LANG=2052 "ProductName" "${APP_NAME}"
+VIAddVersionKey /LANG=2052 "ProductName" "AirLand"
 VIAddVersionKey /LANG=2052 "FileDescription" "${APP_NAME}安装程序"
 VIAddVersionKey /LANG=2052 "FileVersion" "${APP_VERSION}"
-VIAddVersionKey /LANG=2052 "LegalCopyright" "Island贡献者"
+VIAddVersionKey /LANG=2052 "LegalCopyright" "AirLand 贡献者"
 !define MUI_ICON "${PROJECT_DIR}\assets\island.ico"
 !define MUI_UNICON "${PROJECT_DIR}\assets\island.ico"
 !define MUI_ABORTWARNING
@@ -36,26 +41,26 @@ Var DesktopChoice
 Var AutoStartChoice
 Page custom InstallPage InstallPageLeave
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_TITLE "Island已安装"
+!define MUI_FINISHPAGE_TITLE "爱尔栏已安装"
 !define MUI_FINISHPAGE_TEXT "音乐、提醒和日常小事，现在都在桌面上的小岛里。"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\message-island.exe"
-!define MUI_FINISHPAGE_RUN_TEXT "打开Island"
+!define MUI_FINISHPAGE_RUN_TEXT "打开爱尔栏"
 !insertmacro MUI_PAGE_FINISH
-!define MUI_UNCONFIRMPAGE_TEXT_TOP "将卸载Island。设置、待办和连接记录会保留，重新安装后仍可使用。"
+!define MUI_UNCONFIRMPAGE_TEXT_TOP "将卸载爱尔栏。设置、待办和连接记录会保留，重新安装后仍可使用。"
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "SimpChinese"
-BrandingText "Island · Island"
+BrandingText "AirLand · 爱尔栏"
 SetFont "Microsoft YaHei UI" 9
 
 Function .onInit
   ${IfNot} ${RunningX64}
-    MessageBox MB_OK|MB_ICONSTOP "Island需要 Windows 10 或 Windows 11 的 64 位系统。" /SD IDOK
+    MessageBox MB_OK|MB_ICONSTOP "爱尔栏需要 Windows 10 或 Windows 11 的 64 位系统。" /SD IDOK
     SetErrorLevel 1
     Quit
   ${EndIf}
   ${IfNot} ${AtLeastWin10}
-    MessageBox MB_OK|MB_ICONSTOP "Island需要 Windows 10 或 Windows 11。" /SD IDOK
+    MessageBox MB_OK|MB_ICONSTOP "爱尔栏需要 Windows 10 或 Windows 11。" /SD IDOK
     SetErrorLevel 1
     Quit
   ${EndIf}
@@ -65,8 +70,11 @@ Function .onInit
   StrCpy $AutoStartChoice 0
   ReadRegStr $0 HKCU "${UNINSTALL_KEY}" "InstallLocation"
   ${If} $0 != ""
-    IfFileExists "$DESKTOP\${APP_NAME}.lnk" +2 0
-      StrCpy $DesktopChoice 0
+    StrCpy $DesktopChoice 0
+    IfFileExists "$DESKTOP\${APP_NAME}.lnk" 0 +2
+      StrCpy $DesktopChoice 1
+    IfFileExists "$DESKTOP\${LEGACY_NAME}.lnk" 0 +2
+      StrCpy $DesktopChoice 1
   ${EndIf}
   ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_ID}"
   ${If} $0 != ""
@@ -87,7 +95,7 @@ Function .onInit
 FunctionEnd
 
 Function InstallPage
-  !insertmacro MUI_HEADER_TEXT "欢迎使用Island" "Windows 顶部的桌面伙伴"
+  !insertmacro MUI_HEADER_TEXT "欢迎使用爱尔栏" "Windows 顶部的桌面伙伴"
   nsDialogs::Create 1018
   Pop $0
   InitPluginsDir
@@ -97,11 +105,11 @@ Function InstallPage
   System::Call 'user32::LoadImageW(p 0, w "$PLUGINSDIR\brand.ico", i 1, i 64, i 64, i 0x10) p .r1'
   StrCpy $BrandIcon $1
   SendMessage $0 0x170 $1 0
-  ${NSD_CreateLabel} 58u 8u 240u 22u "${APP_NAME}"
+  ${NSD_CreateLabel} 58u 8u 240u 22u "${APP_DISPLAY}"
   Pop $0
   CreateFont $1 "Microsoft YaHei UI" 18 700
   SendMessage $0 ${WM_SETFONT} $1 0
-  ${NSD_CreateLabel} 112u 14u 188u 14u "v${APP_VERSION} · 升级保留设置和记录"
+  ${NSD_CreateLabel} 170u 14u 130u 14u "v${APP_VERSION} · 升级保留设置和记录"
   Pop $0
   ${NSD_CreateLabel} 58u 34u 240u 20u "让重要的信息，轻轻出现在屏幕顶部。"
   Pop $0
@@ -188,7 +196,7 @@ FunctionEnd
 Function BrowseDirectory
   Pop $0
   ${NSD_GetText} $PathInput $0
-  nsDialogs::SelectFolderDialog "选择Island安装文件夹" "$0"
+  nsDialogs::SelectFolderDialog "选择爱尔栏安装文件夹" "$0"
   Pop $0
   ${If} $0 != "error"
     StrCpy $INSTDIR $0
@@ -262,6 +270,11 @@ Section "安装"
   Delete "$INSTDIR\scripts\collect-diagnostics.ps1"
   RMDir "$INSTDIR\scripts"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
+  ; 改名前（Island）的快捷方式。
+  Delete "$DESKTOP\${LEGACY_NAME}.lnk"
+  Delete "$SMPROGRAMS\${LEGACY_NAME}.lnk"
+  Delete "$SMPROGRAMS\${LEGACY_NAME}设置.lnk"
+  Delete "$SMPROGRAMS\收集${LEGACY_NAME}诊断.lnk"
   ${If} $DesktopChoice == 1
     CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\message-island.exe"
   ${Else}
@@ -276,9 +289,9 @@ Section "安装"
   CreateShortcut "$SMPROGRAMS\${APP_NAME}设置.lnk" "$INSTDIR\message-island.exe" "--settings"
   ; Island打不开、卡死时的备用入口；能打开时用「设置 → 关于 → 收集诊断」。
   CreateShortcut "$SMPROGRAMS\收集${APP_NAME}诊断.lnk" "$INSTDIR\message-island.exe" "--collect-diagnostics" "$INSTDIR\message-island.exe" 0
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "${APP_NAME}"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "${APP_DISPLAY}"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${APP_VERSION}"
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "Island"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "AirLand"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\message-island.exe,0"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'

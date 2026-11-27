@@ -371,8 +371,8 @@ mod fullscreen_follow_tests {
             cover();
             let fullscreen = covering_monitor(hwnd);
             DestroyWindow(hwnd).unwrap();
-            assert!(fullscreen.is_some(), "无边框全屏仍应隐藏Island");
-            assert!(maximized.is_none(), "普通最大化即使盖满屏幕也应显示Island");
+            assert!(fullscreen.is_some(), "无边框全屏仍应隐藏爱尔栏");
+            assert!(maximized.is_none(), "普通最大化即使盖满屏幕也应显示爱尔栏");
         }
     }
 
@@ -400,7 +400,7 @@ mod fullscreen_follow_tests {
             let result = covering_monitor(hwnd);
             DestroyWindow(hwnd).unwrap();
             assert!(zoomed && captioned, "复现条件：最大化且保留标题栏样式");
-            assert!(result.is_some(), "客户区盖满整屏的全屏游戏应隐藏Island");
+            assert!(result.is_some(), "客户区盖满整屏的全屏游戏应隐藏爱尔栏");
         }
     }
 

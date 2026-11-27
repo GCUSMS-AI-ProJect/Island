@@ -146,7 +146,7 @@ impl Exclusion {
             return;
         }
         if !system_supported() {
-            self.error = Some("隐藏截图和录屏中的Island需要 Windows 10 2004 或更新版本".into());
+            self.error = Some("隐藏截图和录屏中的爱尔栏需要 Windows 10 2004 或更新版本".into());
             return;
         }
         for target in targets.into_iter().flatten() {
@@ -201,7 +201,7 @@ impl Exclusion {
         let result = render();
         if let Err(error) = &result {
             if self.active {
-                let message = format!("截图排除期间Island窗口更新失败（{}）", error.code());
+                let message = format!("截图排除期间爱尔栏窗口更新失败（{}）", error.code());
                 self.rollback(
                     message,
                     targets.into_iter().flatten().chain(new_target),

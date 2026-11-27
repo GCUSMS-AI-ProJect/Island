@@ -159,7 +159,7 @@ fn qq_text_matching_an_island_reminder_is_not_a_self_notification_echo(){
     h.app.settings.read_notifications=true;
     h.app.alert("喝水时间到了","喝点水吧",2,true);
     h.app.receive_notification("QQ".into(),"QQ".into(),"喝水时间到了 · 喝点水吧".into());
-    assert_eq!(h.app.pending_messengers,[Unread::of(Messenger::Qq)],"QQ 的真实消息不能只因文字相同就被当成Island通知回传");
+    assert_eq!(h.app.pending_messengers,[Unread::of(Messenger::Qq)],"QQ 的真实消息不能只因文字相同就被当成爱尔栏通知回传");
 }
 
 #[test]

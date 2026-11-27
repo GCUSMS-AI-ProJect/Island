@@ -613,13 +613,13 @@ impl Window {
     fn capture_targets(&self) -> capture::Targets {
         use capture::Target;
         [
-            Some(Target { hwnd: self.hwnd, name: "Island主窗口" }),
+            Some(Target { hwnd: self.hwnd, name: "爱尔栏主窗口" }),
             match &self.layering {
-                Layering::Active(layered) => Some(Target { hwnd: layered.display(), name: "Island分层显示窗口" }),
+                Layering::Active(layered) => Some(Target { hwnd: layered.display(), name: "爱尔栏分层显示窗口" }),
                 _ => None,
             },
-            self.crop.bridge.as_ref().map(|layer| Target { hwnd: layer.display(), name: "Island裁剪过渡窗口" }),
-            self.backdrop.as_ref().map(|backdrop| Target { hwnd: backdrop.hwnd(), name: "Island毛玻璃底板" }),
+            self.crop.bridge.as_ref().map(|layer| Target { hwnd: layer.display(), name: "爱尔栏裁剪过渡窗口" }),
+            self.backdrop.as_ref().map(|backdrop| Target { hwnd: backdrop.hwnd(), name: "爱尔栏毛玻璃底板" }),
         ]
     }
 
@@ -814,7 +814,7 @@ impl Window {
         }
         if self.crop.bridge.is_none() {
             if let Ok(layered) = crate::layered::Layered::new() {
-                self.apply_capture_to_new_window(layered.display(), "Island裁剪过渡窗口");
+                self.apply_capture_to_new_window(layered.display(), "爱尔栏裁剪过渡窗口");
                 self.crop.bridge = Some(layered);
             }
         }
@@ -912,7 +912,7 @@ impl Window {
             if real && !rgba.chunks_exact(4).any(|pixel|pixel[3]!=0) {return false;}
             match crate::layered::Layered::new() {
                 Ok(mut layered)=>{
-                    let target = capture::Target { hwnd: layered.display(), name: "Island分层显示窗口" };
+                    let target = capture::Target { hwnd: layered.display(), name: "爱尔栏分层显示窗口" };
                     self.apply_capture_to_new_window(target.hwnd, target.name);
                     let targets = self.capture_targets();
                     let hwnd = self.hwnd;
@@ -1077,7 +1077,7 @@ impl Window {
                 if self.backdrop.is_none() {
                     match crate::composition::Backdrop::new() {
                         Ok(backdrop) => {
-                            self.apply_capture_to_new_window(backdrop.hwnd(), "Island毛玻璃底板");
+                            self.apply_capture_to_new_window(backdrop.hwnd(), "爱尔栏毛玻璃底板");
                             glass_diagnostic("合成引擎模糊底板已创建");
                             self.backdrop = Some(backdrop);
                         }

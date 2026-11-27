@@ -335,7 +335,7 @@ mod tests{
     }
     #[test]
     fn feishu_in_tray_is_shown_by_feishu_itself(){
-        assert_eq!(wake_route(Messenger::Feishu,false,false),WakeRoute::Relaunch,"关到托盘的飞书不能由Island直接显示（#181 卡死）");
+        assert_eq!(wake_route(Messenger::Feishu,false,false),WakeRoute::Relaunch,"关到托盘的飞书不能由爱尔栏直接显示（#181 卡死）");
         assert_eq!(wake_route(Messenger::Feishu,false,true),WakeRoute::Relaunch,"隐藏优先于残留的最小化标志");
         assert_eq!(wake_route(Messenger::Feishu,true,true),WakeRoute::Restore,"最小化的飞书照常还原");
         assert_eq!(wake_route(Messenger::Feishu,true,false),WakeRoute::Focus);
