@@ -21,7 +21,7 @@
   - `action`、`event`、`notice`
   - `timer`、`storage`、`settings`
   - `card`、`calendar.marker`
-- 组合规则与岛仔的 `spike/capabilities.rs` 保持一致：
+- 组合规则与Island的 `spike/capabilities.rs` 保持一致：
   - `status.canvas` 和 `action` 都要求同时声明 `status.page`；
   - 归属必须带上自己的输出。
 - 接受清单的以下字段，并做基本类型检查：

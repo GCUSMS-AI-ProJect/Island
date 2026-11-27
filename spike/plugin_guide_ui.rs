@@ -6,8 +6,8 @@
 use super::*;
 use std::path::{Path, PathBuf};
 
-/// 岛仔插件投稿仓，AI 助手从这里读规范和投稿要求。
-const REPO: &str = "https://github.com/Renly1994/xiaotang-daozai-plugins";
+/// Island插件投稿仓，AI 助手从这里读规范和投稿要求。
+const REPO: &str = "https://github.com/GCUSMS-AI-ProJect/Island";
 
 fn guide_id() -> egui::Id {
     egui::Id::new("plugin-guide")
@@ -47,37 +47,37 @@ pub(super) fn prompt(have: bool, idea: &str, template: Option<&Path>, exe: Optio
         idea.trim()
     };
     let mut text = if have {
-        "帮我把已有的功能改造成岛仔（Windows 灵动岛工具）插件：".to_owned()
+        "帮我把已有的功能改造成Island（Windows 灵动岛工具）插件：".to_owned()
     } else {
-        "帮我做一个岛仔（Windows 灵动岛工具）插件：".to_owned()
+        "帮我做一个Island（Windows 灵动岛工具）插件：".to_owned()
     };
     let start = text.len();
     text.push_str(idea);
     let range = start..text.len();
     text.push('。');
     if have {
-        text.push_str("先判断它需要的能力岛仔现在支不支持，不支持的部分先告诉我。");
+        text.push_str("先判断它需要的能力Island现在支不支持，不支持的部分先告诉我。");
     }
     text.push('\n');
     match template {
         Some(dir) => text.push_str(&format!(
-            "插件模板在 {}（岛仔「从模板创建」生成）。",
+            "插件模板在 {}（Island「从模板创建」生成）。",
             dir.display()
         )),
         None => text.push_str(
-            "插件模板我会在岛仔「设置 › 插件 › 开发者工具 › 从模板创建」生成，再告诉你文件夹位置。",
+            "插件模板我会在Island「设置 › 插件 › 开发者工具 › 从模板创建」生成，再告诉你文件夹位置。",
         ),
     }
     text.push_str(&format!("规范和投稿要求看 {REPO} 。\n要求：\n"));
     text.push_str("- 只改模板里的 main.js、plugin.json 和 cover.png，用 JavaScript\n");
     text.push_str("- refresh 每次从头运行，需要记住的内容放进返回的 storage\n");
     text.push_str("- 让用户填的名字、日期写成 plugin.json 里的设置项\n");
-    let exe = exe.map_or_else(|| "daozai.exe".to_owned(), |exe| exe.display().to_string());
+    let exe = exe.map_or_else(|| "message-island.exe".to_owned(), |exe| exe.display().to_string());
     text.push_str(&format!(
         "- 改完运行 \"{exe}\" --plugin-test plugin.json，直到校验通过\n"
     ));
     text.push_str("- 可追加 --input mock.json，模拟设置、私有数据、当前时间和网络响应\n");
-    text.push_str("- 最后告诉我怎么在岛仔里安装试用");
+    text.push_str("- 最后告诉我怎么在Island里安装试用");
     (text, range)
 }
 
@@ -232,10 +232,10 @@ fn sdk_capabilities(ui: &mut egui::Ui) {
         ("交互与数据", &[
             ("设置与刷新", "支持文本、日期、开关、选项、数字、时刻、星期、时区与列表，可保存私有数据、读取包内 JSON 并定时刷新。"),
             ("页面交互", "支持按钮、单行或多行输入、可点列表和画布交互，可打开 HTTPS 链接或复制文字。"),
-            ("实时组件", "岛仔计算时钟、倒计时和跳动数字，可将敏感值默认打码。"),
-            ("专注事件", "可订阅专注计时结束事件，由岛仔调用插件脚本。"),
+            ("实时组件", "Island计算时钟、倒计时和跳动数字，可将敏感值默认打码。"),
+            ("专注事件", "可订阅专注计时结束事件，由Island调用插件脚本。"),
             #[cfg(windows)]
-            ("一次性提醒", "可发出提醒，由岛仔按用户的通知和正文设置显示。"),
+            ("一次性提醒", "可发出提醒，由Island按用户的通知和正文设置显示。"),
             #[cfg(windows)]
             ("授权取数", "只读用户选定的文件、本机 HTTP 或白名单内的 HTTPS。HTTPS 最多 3 个 GET 来源，可调刷新间隔，密钥由 Windows 托管。"),
             ("AI 额度", "为现有 AI 额度面板添加自定义数据来源。"),
@@ -356,10 +356,10 @@ fn steps(ui: &mut egui::Ui, items: &[(&str, &str)]) {
 
 const NEW_STEPS: [(&str, &str); 5] = [
     ("想好要显示什么", "用一句话写下来，比如「收起时显示距离发薪还有几天」。先选好内容放在哪个功能页，或者是否要在岛上常驻。"),
-    ("用模板生成插件", "到 `开发者工具 › 从模板创建`，填插件 ID、名称和作者，选一个文件夹。岛仔会生成可直接运行的样例。"),
+    ("用模板生成插件", "到 `开发者工具 › 从模板创建`，填插件 ID、名称和作者，选一个文件夹。Island会生成可直接运行的样例。"),
     ("改成你的内容", "用记事本或 VS Code 打开文件夹。`main.js` 写显示逻辑，`plugin.json` 声明要用的能力与设置。把封面换成你的 `cover.png`（16:9，不超过 256 KB）。"),
-    ("装到自己的岛仔上试", "在开发者工具点「安装本地插件…」，选 plugin.json，打开插件开关。勾选「监视文件变化」后保存本地文件即可重载，运行信息可在「脚本日志」里查看。"),
-    ("校验并投稿到集市", "点「本地校验」通过后，按投稿指南提交到岛仔插件仓库。审核通过后，大家就能在集市里搜到并安装。"),
+    ("装到自己的Island上试", "在开发者工具点「安装本地插件…」，选 plugin.json，打开插件开关。勾选「监视文件变化」后保存本地文件即可重载，运行信息可在「脚本日志」里查看。"),
+    ("校验并投稿到集市", "点「本地校验」通过后，按投稿指南提交到Island插件仓库。审核通过后，大家就能在集市里搜到并安装。"),
 ];
 
 const HAVE_STEPS: [(&str, &str); 5] = [
@@ -396,7 +396,7 @@ impl LocalPlugins {
         let close = side_drawer(ui, "plugin-guide", opened, |ui| {
             let mut close = false;
             ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("做一个岛仔插件").size(17.0).strong());
+                ui.label(egui::RichText::new("做一个Island插件").size(17.0).strong());
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     close |= drawer_close(ui);
                     let options = ["还没做好".to_owned(), "已经做好了".to_owned()];
@@ -475,7 +475,7 @@ impl LocalPlugins {
                 let hint = if state.have {
                     "把原代码的文件夹位置也告诉 AI，请它对照当前 SDK 判断哪些能力适合迁移到插件。"
                 } else {
-                    "先点下方「从模板创建」生成插件文件夹，再把这段话发给 Claude Code、Cursor 等 AI 编程助手。模板位置和校验命令岛仔已经帮你填好。"
+                    "先点下方「从模板创建」生成插件文件夹，再把这段话发给 Claude Code、Cursor 等 AI 编程助手。模板位置和校验命令Island已经帮你填好。"
                 };
                 ui.add(egui::Label::new(egui::RichText::new(hint).size(12.0).color(muted_color(ui))).wrap());
                 let (value, example, salt) = if state.have {
@@ -567,11 +567,11 @@ mod tests {
             false,
             "  显示离周末还有几天 ",
             Some(Path::new(r"D:\插件\weekend")),
-            Some(Path::new(r"C:\Daozai\daozai.exe")),
+            Some(Path::new(r"C:\Island\message-island.exe")),
         );
         assert_eq!(&text[range], "显示离周末还有几天");
         assert!(text.contains(r"插件模板在 D:\插件\weekend"));
-        assert!(text.contains(r#""C:\Daozai\daozai.exe" --plugin-test plugin.json"#));
+        assert!(text.contains(r#""C:\Island\message-island.exe" --plugin-test plugin.json"#));
         let (text, range) = prompt(true, "", None, None);
         assert_eq!(&text[range], EXISTING_EXAMPLE);
         assert!(text.contains("不支持的部分先告诉我"));

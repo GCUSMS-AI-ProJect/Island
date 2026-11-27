@@ -24,7 +24,7 @@ impl Fixture {
             .duration_since(std::time::UNIX_EPOCH)?
             .as_nanos();
         let root = std::env::temp_dir().join(format!(
-            "daozai-structured-status-{}-{stamp}",
+            "island-structured-status-{}-{stamp}",
             std::process::id()
         ));
         fs::create_dir(&root)?;

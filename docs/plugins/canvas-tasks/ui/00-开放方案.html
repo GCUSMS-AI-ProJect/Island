@@ -28,7 +28,7 @@ td{padding:7px 8px;font-size:12.5px;border-bottom:1px solid #EEEEE9;vertical-ali
   <div style="display: flex; flex-direction: column; gap: 4px">
     <div class="k">理想版 · 0 · 第二稿</div>
     <h1 style="margin: 0; font-size: 34px">开放方案：标准组件 + 自绘画布</h1>
-    <p class="muted" style="margin: 0; font-size: 14px">不再给每种设计补一个组件。开放一个「自绘画布」：插件描述要画的图形，岛仔负责画、缩放、主题、帧率和安全。五个官方插件都用它来做，顺便当样例。</p>
+    <p class="muted" style="margin: 0; font-size: 14px">不再给每种设计补一个组件。开放一个「自绘画布」：插件描述要画的图形，Island负责画、缩放、主题、帧率和安全。五个官方插件都用它来做，顺便当样例。</p>
   </div>
 
   <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; flex: 1; min-height: 0">
@@ -36,13 +36,13 @@ td{padding:7px 8px;font-size:12.5px;border-bottom:1px solid #EEEEE9;vertical-ali
       <div class="k">三层结构</div>
       <div class="lay" style="background: #E3F5E9"><b style="font-size: 14px; color: #1F7A3D">标准组件（已有，保留）</b><span class="muted" style="font-size: 12.5px; line-height: 1.6">状态行、指标、列表、折线、计数、时钟、倒计时、按钮、输入框。零设计也好看，适合工具型插件。</span></div>
       <div class="lay" style="background: #EEE8FF"><b style="font-size: 14px; color: #5B3FD1">自绘画布（新增）</b><span class="muted" style="font-size: 12.5px; line-height: 1.6">矩形、圆角、圆、弧、线、路径、文字、包内图片、分组、渐变、阴影、发光、裁剪。可以和标准组件混排，也可以整页都是画布。</span></div>
-      <div class="lay" style="background: #E6F0FF"><b style="font-size: 14px; color: #1F5FBF">宿主实时值（两边共用）</b><span class="muted" style="font-size: 12.5px; line-height: 1.6">现在时间、计数器、倒计时、城市时钟、某段时间的进度。画布里写「绑定」，岛仔每帧算，脚本不用每秒跑。</span></div>
+      <div class="lay" style="background: #E6F0FF"><b style="font-size: 14px; color: #1F5FBF">宿主实时值（两边共用）</b><span class="muted" style="font-size: 12.5px; line-height: 1.6">现在时间、计数器、倒计时、城市时钟、某段时间的进度。画布里写「绑定」，Island每帧算，脚本不用每秒跑。</span></div>
       <div class="card" style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
         <div class="k">为什么这样比逐个补组件好</div>
         <ul class="muted" style="margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.65">
           <li>做一次渲染器，所有插件都受益；新设计不需要我们再写代码。</li>
           <li>作者的上限由他的审美决定，不由我们的组件清单决定。</li>
-          <li>仍然是数据不是代码：不能联网取图、不能读文件，岛仔能检查和限流。</li>
+          <li>仍然是数据不是代码：不能联网取图、不能读文件，Island能检查和限流。</li>
         </ul>
       </div>
     </div>
@@ -66,11 +66,11 @@ td{padding:7px 8px;font-size:12.5px;border-bottom:1px solid #EEEEE9;vertical-ali
       <div class="card" style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
         <div class="k">护栏</div>
         <ul class="muted" style="margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.65">
-          <li>字体默认用岛仔自带的；用户装了「字体包」插件后，画布可按名字引用（缺字时回退到岛仔字体）。颜色可写 $accent、$text、$muted、$card，换皮肤自动跟随。</li>
+          <li>字体默认用Island自带的；用户装了「字体包」插件后，画布可按名字引用（缺字时回退到Island字体）。颜色可写 $accent、$text、$muted、$card，换皮肤自动跟随。</li>
           <li>每页最多 1500 个图元，图片只能来自插件包（合计 512 KiB）。</li>
           <li>动画只能声明（数值变化时过渡、有限次的循环），不能让脚本每帧跑。</li>
           <li>绘制超时自动降级为静态画面，并在开发调试里提示作者。</li>
-          <li>隐私交给用户：插件不强制打码，用户可用岛仔已有的「截图和录屏中隐藏」等设置。</li>
+          <li>隐私交给用户：插件不强制打码，用户可用Island已有的「截图和录屏中隐藏」等设置。</li>
         </ul>
       </div>
     </div>

@@ -27,14 +27,14 @@ struct Settings {
     network: Vec<String>,
 }
 fn plugins() -> PathBuf {
-    env::var_os("DAOZAI_SPIKE_PLUGINS")
+    env::var_os("ISLAND_SPIKE_PLUGINS")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("spike/plugins"))
 }
 fn data() -> PathBuf {
-    env::var_os("DAOZAI_SPIKE_DATA")
+    env::var_os("ISLAND_SPIKE_DATA")
         .map(PathBuf::from)
-        .unwrap_or_else(|| env::temp_dir().join("daozai-sdk-spike"))
+        .unwrap_or_else(|| env::temp_dir().join("island-sdk-spike"))
 }
 fn plugin_bytes(kind: &str) -> Result<Vec<u8>> {
     use std::io::Read;

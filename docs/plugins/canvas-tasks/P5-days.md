@@ -1,6 +1,6 @@
 # P5：日子（倒计时 + 节假日合并）
 
-插件仓分支 `feat/official-days`，插件 ID `daozai.days`。逻辑层现在就能开工，画面层依赖 A、B、C；投稿依赖 P0。设计稿：「理想版 · 日子」。共同规则见 [README](README.md)。
+插件仓分支 `feat/official-days`，插件 ID `island.days`。逻辑层现在就能开工，画面层依赖 A、B、C；投稿依赖 P0。设计稿：「理想版 · 日子」。共同规则见 [README](README.md)。
 
 参考 `spike/examples/countdown` 和 `spike/examples/holidays`：节假日数据格式和日历标注的写法沿用它们。
 

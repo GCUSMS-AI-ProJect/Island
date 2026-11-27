@@ -622,17 +622,17 @@ fn standalone_settings_page(manifest: &Manifest) -> bool {
 // 官方面板按实际用途分组。其他清单字段保持原来的显示顺序。
 fn settings_section(id: &str, key: &str) -> (u8, &'static str) {
     match (id, key) {
-        ("daozai.gold", "unit" | "range" | "up_color") => (1, "报价"),
-        ("daozai.gold", "alert_usd" | "alert_cny") => (2, "价格提醒"),
-        ("daozai.live-pay", "salary" | "days" | "start" | "end") => (1, "薪资与班次"),
-        ("daozai.live-pay", "breaks") => (2, "休息时段"),
-        ("daozai.world-clock", "cities") => (1, "城市"),
-        ("daozai.days", "days") => (1, "我的日子"),
-        ("daozai.days", "show_holidays") => (2, "显示"),
-        ("daozai.notes", "pin_mode")
-        | ("daozai.live-pay", "pinned_show")
-        | ("daozai.world-clock", "pinned_city")
-        | ("daozai.days", "pinned_day") => (3, "常驻内容"),
+        ("island.gold", "unit" | "range" | "up_color") => (1, "报价"),
+        ("island.gold", "alert_usd" | "alert_cny") => (2, "价格提醒"),
+        ("island.live-pay", "salary" | "days" | "start" | "end") => (1, "薪资与班次"),
+        ("island.live-pay", "breaks") => (2, "休息时段"),
+        ("island.world-clock", "cities") => (1, "城市"),
+        ("island.days", "days") => (1, "我的日子"),
+        ("island.days", "show_holidays") => (2, "显示"),
+        ("island.notes", "pin_mode")
+        | ("island.live-pay", "pinned_show")
+        | ("island.world-clock", "pinned_city")
+        | ("island.days", "pinned_day") => (3, "常驻内容"),
         _ => (0, "设置"),
     }
 }
@@ -748,7 +748,7 @@ impl LocalPlugins {
             ui,
             "page-shortcuts-display",
             "快捷切换图标",
-            "在岛仔展开后的底部与页码点同排显示",
+            "在Island展开后的底部与页码点同排显示",
             *show,
             true,
         ) {
@@ -1882,7 +1882,7 @@ impl LocalPlugins {
         if !compatibility_enabled && active != Some(id.as_str()) {
             crate::extras::settings_hint(
                 ui,
-                "材质需要兼容渲染（Direct3D 12），开启后重启岛仔生效。",
+                "材质需要兼容渲染（Direct3D 12），开启后重启Island生效。",
             );
             restart = ui.button("开启并重启").clicked();
         }
@@ -2163,7 +2163,7 @@ impl LocalPlugins {
         let has_settings = manifest.has_settings();
         let supports_pinned = self.pinned_name(id).is_some();
         let standalone = standalone_settings_page(manifest);
-        let grouped = id == "daozai.days" || standalone;
+        let grouped = id == "island.days" || standalone;
         let mut sections = std::collections::BTreeMap::<_, Vec<_>>::new();
         for field in &manifest.settings {
             sections.entry(settings_section(id, &field.key)).or_default().push(field);
@@ -2185,8 +2185,8 @@ impl LocalPlugins {
                     submit |= script_settings_ui::field_row(ui, id, field, value);
                 }
                 match (id, heading) {
-                    ("daozai.gold", "价格提醒") => settings_hint(ui, "提醒价填 0 时关闭该提醒"),
-                    ("daozai.live-pay", "薪资与班次") => settings_hint(ui, "月薪填 0 表示未设置"),
+                    ("island.gold", "价格提醒") => settings_hint(ui, "提醒价填 0 时关闭该提醒"),
+                    ("island.live-pay", "薪资与班次") => settings_hint(ui, "月薪填 0 表示未设置"),
                     _ => {}
                 }
             });

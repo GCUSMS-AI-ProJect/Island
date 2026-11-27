@@ -1,5 +1,5 @@
 $cargoArguments = $args
-$mutex = [Threading.Mutex]::new($false, 'Local\Daozai.Cargo')
+$mutex = [Threading.Mutex]::new($false, 'Local\Island.Cargo')
 try {
     try { $null = $mutex.WaitOne() }
     catch [Threading.AbandonedMutexException] { }

@@ -14,7 +14,7 @@ struct Fixtures(PathBuf);
 impl Fixtures {
     fn new() -> Result<Self> {
         let path = std::env::temp_dir().join(format!(
-            "daozai-appearance-{}-{}",
+            "island-appearance-{}-{}",
             std::process::id(),
             SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos()
         ));
@@ -32,7 +32,7 @@ impl Fixtures {
         )?;
         fs::write(dir.join(kind.entry()), source.to_string())?;
         fs::write(&manifest, json!({
-            "id": id, "name": "外观资源", "author": "岛仔", "version": "1.0.0", "api": 1,
+            "id": id, "name": "外观资源", "author": "Island", "version": "1.0.0", "api": 1,
             "runtime": "assets", "entry": kind.entry(), "cover": "cover.png", "owner": "appearance",
             "capabilities": [kind.capability()], "dataVersion": 1, "permissions": {}, "settings": []
         }).to_string())?;
@@ -113,7 +113,7 @@ fn sdk_spike_canvas_font_pack_registers_falls_back_and_survives_restart() -> Res
             assert_eq!(galley.text(), "岛→");
         });
     });
-    if let Some(dir) = std::env::var_os("DAOZAI_CANVAS_SCREENSHOTS") {
+    if let Some(dir) = std::env::var_os("ISLAND_CANVAS_SCREENSHOTS") {
         save_font_preview(&host, &PathBuf::from(dir))?;
     }
     host.enable(id, false)?;
@@ -143,7 +143,7 @@ fn save_font_preview(host: &LocalPlugins, dir: &Path) -> Result<()> {
         "height":172,"nodes":[
             {"rect":[0,0,387,172],"r":12,"fill":"#202A23"},
             {"text":"站酷快乐体","at":[18,66],"size":36,"font":"站酷快乐体","fill":"#F7EACF"},
-            {"text":"岛仔画布 · 趋势与进度","at":[18,108],"size":24,"font":"站酷快乐体","fill":"#C8D97B"},
+            {"text":"Island画布 · 趋势与进度","at":[18,108],"size":24,"font":"站酷快乐体","fill":"#C8D97B"},
             {"text":"中文至箭头 →","at":[18,145],"size":18,"font":"站酷快乐体","fill":"#F7EACF"}
         ]
     })).map_err(|error| fail(&error))?);

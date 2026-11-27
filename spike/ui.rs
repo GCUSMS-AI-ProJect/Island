@@ -131,7 +131,7 @@ struct Preview {
 impl eframe::App for Preview {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("岛仔 · 待办与置物");
+            ui.heading("Island · 待办与置物");
             let (rect, _) = ui.allocate_exact_size(egui::vec2(419., 125.), egui::Sense::hover());
             ui.painter().rect_filled(rect, 15., egui::Color32::BLACK);
             let card = Card::new(ui, rect.min, rect);
@@ -189,12 +189,12 @@ pub(super) fn window(kind: &str, path: Option<PathBuf>) -> Result<()> {
     let opts = eframe::NativeOptions {
         renderer: eframe::Renderer::Glow,
         // 与正常岛体一致；测量时可显式恢复旧验证窗口的垂直同步。
-        vsync: !cfg!(windows) || env::var_os("DAOZAI_SPIKE_LEGACY_VSYNC").is_some(),
+        vsync: !cfg!(windows) || env::var_os("ISLAND_SPIKE_LEGACY_VSYNC").is_some(),
         viewport: egui::ViewportBuilder::default().with_inner_size([445., 318.]),
         ..Default::default()
     };
     eframe::run_native(
-        "岛仔 SDK 验证",
+        "Island SDK 验证",
         opts,
         Box::new(move |cc| {
             theme::load_fonts(&cc.egui_ctx);
@@ -202,9 +202,9 @@ pub(super) fn window(kind: &str, path: Option<PathBuf>) -> Result<()> {
                 view,
                 path,
                 frames: 0,
-                profile: env::var_os("DAOZAI_SPIKE_COUNTERS").map(PathBuf::from),
+                profile: env::var_os("ISLAND_SPIKE_COUNTERS").map(PathBuf::from),
                 drawn: 0,
-                repaint_interval: env::var("DAOZAI_SPIKE_REDRAW_MS")
+                repaint_interval: env::var("ISLAND_SPIKE_REDRAW_MS")
                     .ok()
                     .and_then(|v| v.parse::<u64>().ok())
                     .filter(|v| *v > 0)

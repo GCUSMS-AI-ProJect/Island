@@ -683,7 +683,7 @@ mod tests {
                     raster.update_textures(&out.textures_delta);
                     let primitives = ctx.tessellate(out.shapes, out.pixels_per_point);
                     assert!(primitives.iter().all(|primitive| bounds.contains_rect(primitive.clip_rect)));
-                    if let Some(dir) = std::env::var_os("DAOZAI_CANVAS_SCREENSHOTS") {
+                    if let Some(dir) = std::env::var_os("ISLAND_CANVAS_SCREENSHOTS") {
                         raster.buf.fill([0.0; 4]);
                         raster.draw(&primitives, out.pixels_per_point);
                         let mut rgba = Vec::new();
@@ -703,7 +703,7 @@ mod tests {
     impl Fixture {
         fn new() -> Result<Self> {
             let path = std::env::temp_dir().join(format!(
-                "daozai-pinned-{}-{}",
+                "island-pinned-{}-{}",
                 std::process::id(),
                 chrono::Utc::now().timestamp_nanos_opt().unwrap()
             ));
@@ -719,7 +719,7 @@ mod tests {
             fs::copy(sample, package.join("cover.png"))?;
             let manifest = package.join("plugin.json");
             fs::write(&manifest, json!({
-                "id":id,"name":id,"author":"岛仔","version":"1.0.0","api":1,"runtime":"js",
+                "id":id,"name":id,"author":"Island","version":"1.0.0","api":1,"runtime":"js",
                 "entry":"main.js","cover":"cover.png","owner":"tasks","capabilities":["card","island.pinned"],
                 "dataVersion":1,"permissions":{},"settings":[],
             }).to_string())?;
@@ -742,8 +742,8 @@ mod tests {
 
     impl TestConfig {
         fn use_dir(path: &Path) -> Self {
-            let old = std::env::var_os("DAOZAI_DATA_DIR");
-            std::env::set_var("DAOZAI_DATA_DIR", path);
+            let old = std::env::var_os("ISLAND_DATA_DIR");
+            std::env::set_var("ISLAND_DATA_DIR", path);
             Self(old)
         }
     }
@@ -751,9 +751,9 @@ mod tests {
     impl Drop for TestConfig {
         fn drop(&mut self) {
             if let Some(old) = &self.0 {
-                std::env::set_var("DAOZAI_DATA_DIR", old);
+                std::env::set_var("ISLAND_DATA_DIR", old);
             } else {
-                std::env::remove_var("DAOZAI_DATA_DIR");
+                std::env::remove_var("ISLAND_DATA_DIR");
             }
         }
     }

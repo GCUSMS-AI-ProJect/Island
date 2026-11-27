@@ -55,7 +55,7 @@ mod tests {
 
     #[test]
     fn storage_backup_refuses_a_different_plugin_or_version() -> Result<()> {
-        let root = std::env::temp_dir().join(format!("daozai-storage-backup-{}",
+        let root = std::env::temp_dir().join(format!("island-storage-backup-{}",
             chrono::Utc::now().timestamp_nanos_opt().unwrap()));
         fs::create_dir_all(&root)?;
         let result = (|| -> Result<()> {

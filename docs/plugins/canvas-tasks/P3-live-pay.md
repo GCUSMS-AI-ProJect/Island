@@ -1,6 +1,6 @@
 # P3：实时工资
 
-插件仓分支 `feat/official-live-pay`，插件 ID `daozai.live-pay`。逻辑层现在就能开工，画面层依赖 A、B、C；投稿依赖 P0。设计稿：「理想版 · 实时工资」。共同规则见 [README](README.md)。
+插件仓分支 `feat/official-live-pay`，插件 ID `island.live-pay`。逻辑层现在就能开工，画面层依赖 A、B、C；投稿依赖 P0。设计稿：「理想版 · 实时工资」。共同规则见 [README](README.md)。
 
 参考 `spike/examples/live-pay` 的计算部分。
 
@@ -42,9 +42,9 @@
   - 每小时一条分隔线。
   - 每个休息段用橙色斜纹标出。不画饭碗等检查点图标。
   - 末端放终点旗。
-  - 岛仔沿进度移动：用 B 的 `pet` 节点，`at` 绑定上下班进度。
-    - 工作时：`mood: "expressions"`，`motion: "run"`。岛仔在进度头原地跑跳，表情随机轮换。
-    - 不要自己画岛仔的脸，由宿主绘制，这样会跟随用户的表情包。
+  - Island沿进度移动：用 B 的 `pet` 节点，`at` 绑定上下班进度。
+    - 工作时：`mood: "expressions"`，`motion: "run"`。Island在进度头原地跑跳，表情随机轮换。
+    - 不要自己画Island的脸，由宿主绘制，这样会跟随用户的表情包。
 - **底部一行**：
   - 左边「第 N 小时 · 本小时已赚 ¥x」。
   - 右边绿色胶囊「距离通关 HH:mm:ss」，用 `countdown` 绑定。
@@ -54,11 +54,11 @@
 - 用 `next_refresh_at` 在上班、每个休息段的开始和结束、下班这几个时刻刷新。
 - 休息段内：
   - 经验条换成橙色回血条。
-  - 岛仔切到 `mood: "sleeping"`、`motion: "none"`，旁边用文字节点冒「Zz」（`loop: pulse`）。
+  - Island切到 `mood: "sleeping"`、`motion: "none"`，旁边用文字节点冒「Zz」（`loop: pulse`）。
   - 不计薪的段计价器停住；计薪的段照常跳动。
 - 下班后：
   - 显示「通关！今天到手 ¥x」。
-  - 岛仔切到 `mood: "praised"`、`motion: "bob"`，旁边插一面旗；撒一次彩纸（`burst`），同一天只播放一次。
+  - Island切到 `mood: "praised"`、`motion: "bob"`，旁边插一面旗；撒一次彩纸（`burst`），同一天只播放一次。
 - 休息日：显示「今天不打怪」和距离下个工作日上班的倒计时。
 - 下班时发一次 `notice`：「下班啦」。正文不写金额。
 
@@ -85,4 +85,4 @@
   - 休息段越界或重叠的校验；
   - 各状态切换时刻；
   - 跨午夜的上下班设置（如 22:00–06:00）。
-- 用 `DAOZAI_FRAME_TRACE=1` 确认：只有经验条在流动时，帧间隔正常，岛收起后不再出动画帧。
+- 用 `ISLAND_FRAME_TRACE=1` 确认：只有经验条在流动时，帧间隔正常，岛收起后不再出动画帧。

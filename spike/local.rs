@@ -71,9 +71,9 @@ const SCRIPT_SOURCE_LIMIT: u64 = 256 * 1024;
 const BACKDROP_PERMISSION: &str = "screen.backdrop";
 const SOURCE_PERMISSION: &str = "source.read";
 const API_VERSION: u32 = 1;
-const WIRELESS_PLUGIN_ID: &str = "daozai.wireless-receivers";
+const WIRELESS_PLUGIN_ID: &str = "island.wireless-receivers";
 #[cfg(windows)]
-const WIRELESS_FEEDBACK_URL: &str = "https://github.com/Renly1994/xiaotang-daozai/issues/267";
+const WIRELESS_FEEDBACK_URL: &str = "https://github.com/GCUSMS-AI-ProJect/Island/issues/new";
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -441,7 +441,7 @@ impl Manifest {
         let ApiHeader { api } = serde_json::from_str(contents)?;
         if api > u64::from(API_VERSION) {
             return Err(fail(&format!(
-                "需要更新岛仔。此插件需要 API v{api}，当前支持 v{API_VERSION}"
+                "需要更新Island。此插件需要 API v{api}，当前支持 v{API_VERSION}"
             )));
         }
         let manifest: Self = serde_json::from_str(contents)?;
@@ -516,7 +516,7 @@ impl Manifest {
     }
 
     fn is_retired_lunar_preview(&self) -> bool {
-        self.id == "daozai.lunar-today" && self.version == "1.0.0" && self.owner == "tasks"
+        self.id == "island.lunar-today" && self.version == "1.0.0" && self.owner == "tasks"
     }
 
     fn validate(&self) -> Result<()> {
@@ -1836,7 +1836,7 @@ impl LocalPlugins {
             let mut fetch = self.source_fetch.get(&id).cloned().unwrap_or_default();
             let script_logs = self.devtools.logs.clone();
             let plugin_id = id.clone();
-            let result = std::thread::Builder::new().name("daozai-plugin-read".into()).spawn(move || {
+            let result = std::thread::Builder::new().name("island-plugin-read".into()).spawn(move || {
                 let source = match r.source_grant() {
                     #[cfg(windows)]
                     Some(SourceGrant::HttpsSources { .. }) => {

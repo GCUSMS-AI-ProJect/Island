@@ -10,15 +10,15 @@
 - New API：输入 HTTPS 站点地址 + API Key，默认自动识别，也可在高级设置指定协议。仅展示接口明确返回的账户额度，保持原单位；不把 Key 额度或无限额状态当成账户余额，不擅自换算美元。
 - One API：独立读取 `/dashboard/billing/subscription` 和 `/dashboard/billing/usage`。兼容计费接口不能证明数据属于账户还是 Key，当前显示「余额暂不可查询」，不冒充账户余额；保留原单位及无限额哨兵校验。
 - Sub2API：独立 `/v1/usage`，钱包显示余额，订阅周期显示剩余百分比；只提供 Key 限额时显示「余额暂不可查询」。Key 限额不进入主卡片、收起状态或设置明细。到期时间不是重置时间。
-- Kimi Code：只读使用本机订阅登录，查询时检查凭据有效期。登录过期时请在 Kimi Code 中重新登录，岛仔会在下一次定时刷新时重读登录文件。
+- Kimi Code：只读使用本机订阅登录，查询时检查凭据有效期。登录过期时请在 Kimi Code 中重新登录，Island会在下一次定时刷新时重读登录文件。
 - 豆包：读取网页会员的非官方 `subscription/quota/summary` 接口，支持 5 小时、每周及活动额度，不查询火山方舟 API 余额。浏览器登录优先识别 Windows 默认的 Chrome／Edge，再查找本机已安装的 Chrome／Edge，使用独立临时目录及随机本地调试端口，不依赖浏览器扩展；仅采集适用于豆包额度接口的会话，结束或取消后关闭本次启动的浏览器进程并清理临时目录。也可只读导入本机豆包客户端当前配置的登录，数据库占用或加密格式未知时引导官网登录；不读取常用 Chrome／Edge 的账号目录。登录使用当前 Windows 用户的 DPAPI 加密，配置和缓存仅保存随机引用及额度快照。取消或关闭连接窗口不保存登录，重新连接保留账号名称、排序、常驻与配色。缺失、无效及零总额度不推断为剩余 100%；活动及其他权益池保留在完整明细中。
 
 中转地址要求站点根地址，原样保留反向代理部署前缀（包括路径中的 `/v1`），不会猜测或删除 API 后缀。拒绝 HTTP（含 localhost）、用户名/密码、查询参数和 fragment。自动识别仅尝试当前站点的已知额度接口，不向其他站点、厂商或地区发送 Key。
 
 ## 安全与性能
 
-- 岛仔只调用指定额度查询接口，但不会缩减 Key 本身已有的权限；不要把普通 API Key 宣传为只读 Key。
-- Key 只进入 Windows 凭据管理器 `Daozai.ApiQuota`。配置和缓存只保存随机凭据引用、协议与地址/地区；日志及错误不回显响应正文或 Key。
+- Island只调用指定额度查询接口，但不会缩减 Key 本身已有的权限；不要把普通 API Key 宣传为只读 Key。
+- Key 只进入 Windows 凭据管理器 `Island.ApiQuota`。配置和缓存只保存随机凭据引用、协议与地址/地区；日志及错误不回显响应正文或 Key。
 - 验证异步执行且最多一项在途；取消后仍等待当前有界请求结束，不累计线程。取消阻止后续 One API 请求和 Key 保存。切换服务清空输入中的 Key。连接/移除先持久化配置，再清理旧凭据。清理日志仅存随机引用，写入失败不继续修改；清理失败保留引用供重试。启动清理必须严格确认已保存配置可读、结构有效，不把配置损坏视为空账号。
 - 共享既有代理设置，禁用重定向，解码后响应上限 1 MiB。自动识别总预算 15 秒，单次连接和请求使用剩余预算且不超过 5 秒；界面到期即取消并丢弃结果。系统 DNS 阻塞可能延迟在途线程退出，仍保持单项验证，不累计线程。手动指定及日常刷新沿用 15 秒请求超时，One API 两次顺序请求总耗时可能约 30 秒。
 - 每个新增协议有独立单线程队列；最新刷新覆盖尚未开始的旧请求，不累积无界线程，不等待其他协议完成。原有浏览器类服务维持同组串行。
@@ -49,7 +49,7 @@
 
 新增 34 个合成测试全部通过，覆盖套餐解析、金额/单位、未知和无限、响应错误、地址安全、缓存来源绑定、旧缓存兼容、队列合并及晚到结果过滤。
 
-原始实现的 Linux `cargo build --locked --bin daozai` 被 main.rs 两处既有 Windows-only `system_state` 引用阻挡；`--lib` 测试被既有 WorkBuddy 手工登录测试引用 Windows-only login 模块阻挡。为继续验证，另建一次性副本，仅为以上三处增加平台条件；这些平台兼容调整没有加入本补丁。
+原始实现的 Linux `cargo build --locked --bin island` 被 main.rs 两处既有 Windows-only `system_state` 引用阻挡；`--lib` 测试被既有 WorkBuddy 手工登录测试引用 Windows-only login 模块阻挡。为继续验证，另建一次性副本，仅为以上三处增加平台条件；这些平台兼容调整没有加入本补丁。
 
 最终修正版在该验证副本执行 `cargo test --locked --all-targets --features record --no-fail-fast -- --test-threads=1`，其中 library 测试：663 通过、4 失败、58 忽略。四个失败已在干净 main 的独立基线副本复现，位置和断言值一致：
 - 日历日期横向留白（ui_tests.rs:3469）
@@ -64,15 +64,15 @@
 Windows 隔离环境仍需执行仓库要求：
 
 ```
-cargo build --locked --bin daozai
+cargo build --locked --bin island
 cargo test --locked --all-targets --features record -- --test-threads=1
 ```
 
-Windows 验收另用临时 `DAOZAI_DATA_DIR`；不运行 ignore 的私人账号测试。重点测试添加/取消/关闭/重复点击/切换协议和地区、重连失败与配置写失败、无权限/超时/限流/重定向、慢中转与旧服务同时刷新、缓存冷启动、全部现有额度供应商及皮肤/缩放布局。真实账号验收需要单独授权。
+Windows 验收另用临时 `ISLAND_DATA_DIR`；不运行 ignore 的私人账号测试。重点测试添加/取消/关闭/重复点击/切换协议和地区、重连失败与配置写失败、无权限/超时/限流/重定向、慢中转与旧服务同时刷新、缓存冷启动、全部现有额度供应商及皮肤/缩放布局。真实账号验收需要单独授权。
 
 ## 协议来源
 
-- 豆包网页会员：[0011-joe 的 PR #42](https://github.com/Renly1994/xiaotang-daozai/pull/42)，保留原作者提交，针对当前额度页修正和适配。
+- 豆包网页会员：[0011-joe 的 PR #42](https://github.com/GCUSMS-AI-ProJect/Island/pull/42)，保留原作者提交，针对当前额度页修正和适配。
 - OpenCode Go: https://github.com/anomalyco/opencode/blob/d21b0790a6c146815f28fea604e41e922f009590/packages/console/app/src/routes/zen/go/v1/usage.ts
 - MiniMax 官方 CLI: https://github.com/MiniMax-AI/cli/blob/38aba5f26173dd1065b115b221d79c9ddd87c6bb/src/client/endpoints.ts （同提交 schema、types、quota 工具）
 - GLM 官方插件: https://github.com/zai-org/zai-coding-plugins/blob/main/plugins/glm-plan-usage/skills/usage-query-skill/scripts/query-usage.mjs
@@ -92,8 +92,8 @@ Windows 验收另用临时 `DAOZAI_DATA_DIR`；不运行 ignore 的私人账号�
 
 Integrated into the user's main project after verifying the manually downloaded patch SHA-256: `cb2217a2350cb8e6c248c9293464707070c34aec5cbdc83eef108a852b7cae36`. Existing user edits were backed up and preserved. No quota patch file overlapped the user's six modified files. Later concurrent messenger UI tests were preserved as well.
 
-- Existing Rust 1.96.1 MSVC toolchain, Windows SDK and Build Tools only; no software installed. Jobs limited to one. Test data isolated with `DAOZAI_DATA_DIR`.
-- `cargo build --locked --bin daozai --target x86_64-pc-windows-msvc`: passed (debug build).
+- Existing Rust 1.96.1 MSVC toolchain, Windows SDK and Build Tools only; no software installed. Jobs limited to one. Test data isolated with `ISLAND_DATA_DIR`.
+- `cargo build --locked --bin message-island --target x86_64-pc-windows-msvc`: passed (debug build).
 - Quota-focused library tests with `--features record`: 115 passed, 0 failed, 13 ignored. All 34 new adapter tests passed.
 - Full `--all-targets --features record --no-fail-fast -- --test-threads=1` run: 808 passed, 1 failed, 86 ignored across targets. Two calendar credential integration tests explicitly skipped to avoid system credential operations.
 - The one failure was `ui_tests::ignored_mail_event_hides_stops_reminders_persists_and_restores`, index out of bounds at line 4306. It creates an event at now + 600 seconds but queries today's date. The run and first focused retry occurred before local midnight; the same compiled test passed immediately after midnight with no code change. This is a pre-existing test date-boundary issue, not a clean full-suite pass. The test was not modified because the file contains concurrent user work.

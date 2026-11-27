@@ -18,9 +18,6 @@ const STATS_LIMIT: u64 = 256 * 1024;
 const QUEUE_LIMIT: usize = 1024;
 const BATCH_LIMIT: usize = 32;
 const RETRY_INTERVAL: Duration = Duration::from_secs(30);
-#[cfg(not(test))]
-const METRICS_URL: &str = "https://daozai-market-metrics.xiaotang-daozai.workers.dev";
-
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub(super) struct Counts {
     pub(super) downloads: u64,
@@ -80,14 +77,14 @@ impl MarketMetrics {
     }
 
     pub(super) fn open(dir: &Path) -> Self {
-        let channel = if option_env!("DAOZAI_TEST_BUILD").is_some() {
+        let channel = if option_env!("ISLAND_TEST_BUILD").is_some() {
             "preview"
         } else {
             "stable"
         };
         #[cfg(not(test))]
         if channel == "preview" {
-            if let Some(endpoint) = std::env::var("DAOZAI_MARKET_METRICS_TEST_ENDPOINT")
+            if let Some(endpoint) = std::env::var("ISLAND_MARKET_METRICS_TEST_ENDPOINT")
                 .ok()
                 .and_then(|address| Url::parse(&address).ok())
                 .filter(|url| {
@@ -99,11 +96,7 @@ impl MarketMetrics {
                 return Self::with_endpoint(dir, Some(endpoint), channel, "preview-test");
             }
         }
-        #[cfg(not(test))]
-        let endpoint = Some(Url::parse(METRICS_URL).expect("集市统计地址有效"));
-        #[cfg(test)]
-        let endpoint = None;
-        Self::with_endpoint(dir, endpoint, channel, channel)
+        Self::with_endpoint(dir, None, channel, channel)
     }
 
     fn with_endpoint(
@@ -308,7 +301,7 @@ pub(super) mod tests {
     impl DataDir {
         fn new() -> Self {
             let path =
-                std::env::temp_dir().join(format!("daozai-market-metrics-{}", uuid().unwrap()));
+                std::env::temp_dir().join(format!("island-market-metrics-{}", uuid().unwrap()));
             fs::create_dir(&path).unwrap();
             Self(path)
         }

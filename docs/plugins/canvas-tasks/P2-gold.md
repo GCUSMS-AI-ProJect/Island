@@ -1,6 +1,6 @@
 # P2：现货金价
 
-插件仓分支 `feat/official-gold`，插件 ID `daozai.gold`。逻辑层现在就能开工，画面层依赖 A、B、C；投稿依赖 P0。设计稿：「理想版 · 现货金价」。共同规则见 [README](README.md)。
+插件仓分支 `feat/official-gold`，插件 ID `island.gold`。逻辑层现在就能开工，画面层依赖 A、B、C；投稿依赖 P0。设计稿：「理想版 · 现货金价」。共同规则见 [README](README.md)。
 
 参考 `spike/examples/gold-price`，它已经跑通 xaus.com 的人民币每克报价。
 

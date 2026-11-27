@@ -5,7 +5,7 @@ use eframe::egui;
 use std::path::PathBuf;
 
 pub(super) const GUIDE: &str =
-    "https://github.com/Renly1994/xiaotang-daozai-plugins/blob/main/docs/author-submission.md";
+    "https://github.com/GCUSMS-AI-ProJect/Island/issues/new";
 
 #[derive(Clone, Default)]
 pub(super) struct AuthorTools {

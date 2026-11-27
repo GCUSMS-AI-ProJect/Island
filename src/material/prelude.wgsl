@@ -28,7 +28,7 @@ fn rr_sdf(p : vec2<f32>, b : vec2<f32>, r : f32) -> f32 {
     return min(max(q.x, q.y), 0.0) + length(max(q, vec2<f32>(0.0))) - r;
 }
 
-fn daozai_notch_sdf(p : vec2<f32>, b : vec2<f32>, r : f32, flare : f32, fh : f32) -> f32 {
+fn island_notch_sdf(p : vec2<f32>, b : vec2<f32>, r : f32, flare : f32, fh : f32) -> f32 {
     let t = clamp((p.y + b.y) / fh, 0.0, 1.0);
     let wing = flare * pow(1.0 - t, 2.4);
     let hx = b.x + wing;
@@ -41,10 +41,10 @@ fn daozai_notch_sdf(p : vec2<f32>, b : vec2<f32>, r : f32, flare : f32, fh : f32
 }
 
 fn notch_sdf(p : vec2<f32>, b : vec2<f32>, r : f32, flare : f32, fh : f32) -> f32 {
-    return daozai_notch_sdf(p, b, r, flare, max(fh, 1.0));
+    return island_notch_sdf(p, b, r, flare, max(fh, 1.0));
 }
 
-fn daozai_body_sdf(p : vec2<f32>, inset : f32, minimum : f32) -> f32 {
+fn island_body_sdf(p : vec2<f32>, inset : f32, minimum : f32) -> f32 {
     var half_size = max(frame.body.zw * 0.5 - vec2<f32>(inset), vec2<f32>(minimum));
     var local = p - frame.body.xy - frame.body.zw * 0.5;
     let radius = max(min(frame.shape.x - inset, min(half_size.x, half_size.y)), 0.0);
@@ -62,7 +62,7 @@ fn daozai_body_sdf(p : vec2<f32>, inset : f32, minimum : f32) -> f32 {
         if (inset == 0.0) {
             // 按宿主 shape::sections 的逻辑点限幅，保证展开过程中的肩部位置一致。
             let fh = max(min(frame.notch.y, half_size.y), 0.5 * frame.env.z);
-            return daozai_notch_sdf(local, half_size, radius, frame.notch.x, max(fh, 0.0001));
+            return island_notch_sdf(local, half_size, radius, frame.notch.x, max(fh, 0.0001));
         }
         return notch_sdf(local, half_size, radius, frame.notch.x, frame.notch.y);
     }
@@ -70,11 +70,11 @@ fn daozai_body_sdf(p : vec2<f32>, inset : f32, minimum : f32) -> f32 {
 }
 
 fn body_sdf(p : vec2<f32>) -> f32 {
-    return daozai_body_sdf(p, 3.0, 2.0);
+    return island_body_sdf(p, 3.0, 2.0);
 }
 
 fn body_sdf_exact(p : vec2<f32>) -> f32 {
-    return daozai_body_sdf(p, 0.0, 0.0);
+    return island_body_sdf(p, 0.0, 0.0);
 }
 
 fn sample_backdrop(px : vec2<f32>) -> vec3<f32> {
@@ -84,23 +84,23 @@ fn sample_backdrop(px : vec2<f32>) -> vec3<f32> {
     return textureSampleLevel(backdrop, backdrop_sampler, uv, 0.0).rgb;
 }
 
-struct DaozaiVertexOut {
+struct IslandVertexOut {
     @builtin(position) position : vec4<f32>,
     @location(0) uv : vec2<f32>,
 };
 
 @vertex
-fn daozai_vs(@builtin(vertex_index) i : u32) -> DaozaiVertexOut {
+fn island_vs(@builtin(vertex_index) i : u32) -> IslandVertexOut {
     let uv = vec2<f32>(f32((i << 1u) & 2u), f32(i & 2u));
-    return DaozaiVertexOut(vec4<f32>(2.0 * uv.x - 1.0, 1.0 - 2.0 * uv.y, 0.0, 1.0), uv);
+    return IslandVertexOut(vec4<f32>(2.0 * uv.x - 1.0, 1.0 - 2.0 * uv.y, 0.0, 1.0), uv);
 }
 
-override daozai_srgb_target : bool = false;
+override island_srgb_target : bool = false;
 
 @fragment
-fn daozai_fs(i : DaozaiVertexOut) -> @location(0) vec4<f32> {
+fn island_fs(i : IslandVertexOut) -> @location(0) vec4<f32> {
     let color = material(MaterialIn(i.uv * frame.capture.zw, i.uv));
-    if (daozai_srgb_target) {
+    if (island_srgb_target) {
         // egui 的非 sRGB 目标直接接收 gamma 编码的颜色，sRGB 目标在写入时自行编码。
         let rgb = max(color.rgb, vec3<f32>(0.0));
         let linear = select(pow((rgb + 0.055) / 1.055, vec3<f32>(2.4)), rgb / 12.92, rgb < vec3<f32>(0.04045));

@@ -21,7 +21,7 @@ out.mkdir(parents=True, exist_ok=False)
 repo = Path.cwd()
 fixtures = out / "plugins"
 shutil.copytree(repo / "spike/plugins", fixtures)
-env = dict(os.environ, DAOZAI_SPIKE_DATA=str(out / "data"), DAOZAI_SPIKE_PLUGINS=str(fixtures))
+env = dict(os.environ, ISLAND_SPIKE_DATA=str(out / "data"), ISLAND_SPIKE_PLUGINS=str(fixtures))
 result = {"platform": platform.platform(), "cpu_logical": psutil.cpu_count(), "runs": {}}
 target = repo / "target"
 base_size = (target / "spike-base.exe").stat().st_size

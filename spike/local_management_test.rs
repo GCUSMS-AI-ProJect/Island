@@ -84,7 +84,7 @@ pub(super) fn has_text(output: &egui::FullOutput, label: &str) -> bool {
 fn script_settings_controls_save_values_in_the_owner_page() -> Result<()> {
     const ID: &str = "example.script-settings";
     let dir = std::env::temp_dir().join(format!(
-        "daozai-script-settings-{}-{}",
+        "island-script-settings-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -168,7 +168,7 @@ fn storage_limit_error_is_visible_in_local_plugin_details() -> Result<()> {
     const ID: &str = "example.payday";
     const ERROR: &str = "私有存储已满，上限为 256 KiB";
     let dir = std::env::temp_dir().join(format!(
-        "daozai-storage-detail-{}-{}",
+        "island-storage-detail-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -234,7 +234,7 @@ fn status_page_management_opens_and_switches_independently() -> Result<()> {
     const ID: &str = "example.status-management";
     const NAME: &str = "模拟状态详情";
     let dir = std::env::temp_dir().join(format!(
-        "daozai-status-management-{}-{}",
+        "island-status-management-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -381,7 +381,7 @@ fn status_page_management_opens_and_switches_independently() -> Result<()> {
 #[test]
 fn management_buttons_jump_disable_and_confirm_uninstall() -> Result<()> {
     let dir = std::env::temp_dir().join(format!(
-        "daozai-manage-{}-{}",
+        "island-manage-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -447,7 +447,7 @@ fn management_buttons_jump_disable_and_confirm_uninstall() -> Result<()> {
 #[test]
 fn management_module_pause_and_plugin_switch_keep_their_own_choices() -> Result<()> {
     let dir = std::env::temp_dir().join(format!(
-        "daozai-manage-switches-{}-{}",
+        "island-manage-switches-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -516,7 +516,7 @@ fn management_module_pause_and_plugin_switch_keep_their_own_choices() -> Result<
 #[test]
 fn invalid_record_can_be_removed_from_the_installed_list() -> Result<()> {
     let dir = std::env::temp_dir().join(format!(
-        "daozai-manage-invalid-{}-{}",
+        "island-manage-invalid-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -553,7 +553,7 @@ fn invalid_record_can_be_removed_from_the_installed_list() -> Result<()> {
 #[test]
 fn market_buttons_install_and_update_an_existing_sample() -> Result<()> {
     let dir = std::env::temp_dir().join(format!(
-        "daozai-manage-market-{}-{}",
+        "island-manage-market-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -657,7 +657,7 @@ fn official_market_only_requests_uncached_data_or_explicit_refresh() -> Result<(
     const CONTENTS: &str = "/contents/preview/";
     const ZIP: &str = "plugin-example.payday-1.0.0.zip";
     let dir = std::env::temp_dir().join(format!(
-        "daozai-refresh-{}-{}",
+        "island-refresh-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -875,7 +875,7 @@ fn official_market_only_requests_uncached_data_or_explicit_refresh() -> Result<(
 #[test]
 fn material_management_waits_for_permission_and_offers_to_enable_compatibility() -> Result<()> {
     let dir = std::env::temp_dir().join(format!(
-        "daozai-manage-material-{}-{}",
+        "island-manage-material-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -973,7 +973,7 @@ fn material_management_waits_for_permission_and_offers_to_enable_compatibility()
 
 #[test]
 fn header_tabs_keep_market_on_the_left_in_a_right_aligned_title_row() {
-    let dir = std::env::temp_dir().join(format!("daozai-header-tabs-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("island-header-tabs-{}", std::process::id()));
     let mut host = LocalPlugins::open(dir.join("installed"));
     let ctx = egui::Context::default();
     crate::theme::load_fonts(&ctx);
@@ -1001,7 +1001,7 @@ fn header_tabs_keep_market_on_the_left_in_a_right_aligned_title_row() {
 #[cfg(windows)]
 #[test]
 fn market_channel_toolbar_keeps_categories_clickable_at_narrow_width() -> Result<()> {
-    let dir = std::env::temp_dir().join(format!("daozai-market-toolbar-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("island-market-toolbar-{}", std::process::id()));
     fs::create_dir_all(&dir)?;
     let catalog = dir.join("catalog.json");
     let entries = [
@@ -1050,7 +1050,7 @@ fn market_channel_toolbar_keeps_categories_clickable_at_narrow_width() -> Result
             _ => None,
         }).unwrap_or_else(|| panic!("找不到 {label}"))
     };
-    let online = if option_env!("DAOZAI_TEST_BUILD").is_some() { "预览集市" } else { "官方" };
+    let online = if option_env!("ISLAND_TEST_BUILD").is_some() { "预览集市" } else { "官方" };
     let channel_bottom = bounds(online).bottom().max(bounds("本地测试").bottom());
     for label in ["全部", "外观", "页面管理", "独立功能", "日程", "待办与置物", "AI 额度", "无线设备"] {
         assert!(bounds(label).top() > channel_bottom, "{label} 与频道工具行重叠");
@@ -1099,7 +1099,7 @@ fn click_in(ctx: &egui::Context, size: egui::Vec2, label: &str, mut draw: impl F
 
 #[test]
 fn guide_opens_from_the_market_copies_a_prompt_and_stacks_the_template_form() {
-    let dir = std::env::temp_dir().join(format!("daozai-guide-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("island-guide-{}", std::process::id()));
     let mut host = LocalPlugins::open(dir.join("installed"));
     let ctx = egui::Context::default();
     crate::theme::load_fonts(&ctx);
@@ -1117,12 +1117,12 @@ fn guide_opens_from_the_market_copies_a_prompt_and_stacks_the_template_form() {
     };
     let market = frame_in(&ctx, WINDOW, vec![], |ui| draw(&mut host, ui));
     assert!(has_text(&market, "看教程"));
-    assert!(!has_text(&market, "做一个岛仔插件"));
+    assert!(!has_text(&market, "做一个Island插件"));
     click_in(&ctx, WINDOW, "看教程", |ui| draw(&mut host, ui));
     let guide = frame_in(&ctx, WINDOW, vec![], |ui| draw(&mut host, ui));
     let capabilities_title = "当前版本已开放的 SDK 能力";
     for expected in [
-        "做一个岛仔插件", capabilities_title, "一句话交给 AI 做", "JS 卡片模板",
+        "做一个Island插件", capabilities_title, "一句话交给 AI 做", "JS 卡片模板",
         "复制这段话", "从模板创建", "投稿指南",
     ] {
         assert!(has_text(&guide, expected), "{expected}");
@@ -1202,7 +1202,7 @@ fn guide_opens_from_the_market_copies_a_prompt_and_stacks_the_template_form() {
     click_in(&ctx, WINDOW, "从模板创建", |ui| draw(&mut host, ui));
     let form = frame_in(&ctx, WINDOW, vec![], |ui| draw(&mut host, ui));
     assert!(has_text(&form, "选择位置并创建…"));
-    assert!(has_text(&form, "做一个岛仔插件"));
+    assert!(has_text(&form, "做一个Island插件"));
     let escape = || {
         vec![egui::Event::Key {
             key: egui::Key::Escape,
@@ -1215,11 +1215,11 @@ fn guide_opens_from_the_market_copies_a_prompt_and_stacks_the_template_form() {
     let _ = frame_in(&ctx, WINDOW, escape(), |ui| draw(&mut host, ui));
     let after = frame_in(&ctx, WINDOW, vec![], |ui| draw(&mut host, ui));
     assert!(!has_text(&after, "选择位置并创建…"));
-    assert!(has_text(&after, "做一个岛仔插件"));
+    assert!(has_text(&after, "做一个Island插件"));
     let _ = frame_in(&ctx, WINDOW, escape(), |ui| draw(&mut host, ui));
     assert!(!has_text(
         &frame_in(&ctx, WINDOW, vec![], |ui| draw(&mut host, ui)),
-        "做一个岛仔插件"
+        "做一个Island插件"
     ));
     let _ = fs::remove_dir_all(dir);
 }

@@ -87,8 +87,8 @@ pub(super) fn show_badge(ui: &mut egui::Ui, official: bool, sample: bool) {
 }
 
 pub(super) fn display_author(author: &str, official: bool) -> &str {
-    if official && author == "岛仔" {
-        "小唐"
+    if official && author == "Island" {
+        "Island"
     } else {
         author
     }

@@ -2,7 +2,7 @@
 use eframe::egui;
 
 const PRIVATE_REPORT: &str =
-    "https://github.com/Renly1994/xiaotang-daozai-plugins/security/advisories/new";
+    "https://github.com/GCUSMS-AI-ProJect/Island/security/advisories/new";
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 enum Topic {
@@ -38,7 +38,7 @@ impl Feedback {
 
     fn draft(&self) -> String {
         format!(
-            "插件：{}\n插件 ID：{}\n插件版本：{}\n岛仔版本：{}\n\n## {}\n\n## 复现步骤\n",
+            "插件：{}\n插件 ID：{}\n插件版本：{}\nIsland版本：{}\n\n## {}\n\n## 复现步骤\n",
             self.name,
             self.id,
             self.version,
@@ -52,7 +52,7 @@ impl Feedback {
             return url::Url::parse(PRIVATE_REPORT).expect("私密报告地址有效");
         }
         let mut url =
-            url::Url::parse("https://github.com/Renly1994/xiaotang-daozai-plugins/issues/new")
+            url::Url::parse("https://github.com/GCUSMS-AI-ProJect/Island/issues/new")
                 .expect("插件反馈地址有效");
         url.query_pairs_mut()
             .append_pair("title", &self.title())
@@ -93,7 +93,7 @@ pub(super) fn plugin_feedback(ui: &egui::Ui) {
             settings_hint(
                 ui,
                 &format!(
-                    "{} · v{}，插件 ID 和岛仔版本会自动填好。",
+                    "{} · v{}，插件 ID 和Island版本会自动填好。",
                     feedback.name, feedback.version
                 ),
             );
@@ -103,7 +103,7 @@ pub(super) fn plugin_feedback(ui: &egui::Ui) {
                     Topic::Plugin,
                     "在 GitHub 补充使用场景或复现步骤，提交后通知插件维护者。问题单公开可见。",
                 ),
-                (Topic::Install, "装不上、更新失败，由岛仔维护者跟进。"),
+                (Topic::Install, "装不上、更新失败，由Island维护者跟进。"),
                 (Topic::Private, "复制插件信息并打开私密报告，只有维护者能看到。"),
             ] {
                 if super::option_card(ui, topic.title(), detail, false) {
@@ -160,7 +160,7 @@ mod tests {
         };
         let url = feedback.form_url();
         assert_eq!(url.host_str(), Some("github.com"));
-        assert!(url.path().ends_with("/xiaotang-daozai-plugins/issues/new"));
+        assert!(url.path().ends_with("/Island/issues/new"));
         let query = url.query_pairs().collect::<BTreeMap<_, _>>();
         assert_eq!(query.get("title").unwrap(), "[安装与更新] 发薪 & 旅行");
         assert_eq!(query.get("body").unwrap().as_ref(), feedback.draft());

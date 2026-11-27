@@ -36,7 +36,7 @@ fn one_plugin_fills_a_tasks_card_and_a_calendar_marker_under_separate_switches()
     const DAY: &str = "2026-11-23";
     const NEXT: &str = "2026-11-24";
     let root = std::env::temp_dir().join(format!(
-        "daozai-surfaces-{}-{}",
+        "island-surfaces-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -115,7 +115,7 @@ fn one_plugin_fills_a_tasks_card_and_a_calendar_marker_under_separate_switches()
 #[test]
 fn page_shortcuts_are_data_only_and_follow_the_installed_switch() -> Result<()> {
     let root = std::env::temp_dir().join(format!(
-        "daozai-shortcuts-{}-{}",
+        "island-shortcuts-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -203,7 +203,7 @@ mod test_market {
     impl Fixture {
         fn new() -> Result<Self> {
             let root = std::env::temp_dir().join(format!(
-                "daozai-market-{}-{}",
+                "island-market-{}-{}",
                 std::process::id(),
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)?
@@ -405,7 +405,7 @@ mod test_market {
 
     #[test]
     fn lunar_update_preserves_state_and_follows_only_the_calendar_switch() -> Result<()> {
-        const LUNAR: &str = "daozai.lunar-today";
+        const LUNAR: &str = "island.lunar-today";
         const TODAY: &str = "2026-11-21";
         const TOMORROW: &str = "2026-11-22";
         let fixture = Fixture::new()?;
@@ -545,7 +545,7 @@ mod test_market {
         first["plugins"][0]["presentation"] = json!({
             "official": true,
             "sample": true,
-            "maintainer": "renly1994",
+            "maintainer": "island-fixture",
             "author_avatar": avatar_name
         });
         let first = serde_json::to_vec(&first)?;
@@ -712,7 +712,7 @@ mod test_market {
 fn local_cover_requires_a_bounded_png_inside_the_package() -> Result<()> {
     use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder};
 
-    let root = std::env::temp_dir().join(format!("daozai-cover-test-{}", std::process::id()));
+    let root = std::env::temp_dir().join(format!("island-cover-test-{}", std::process::id()));
     let package = root.join("package");
     fs::create_dir_all(&package)?;
     let path = package.join("plugin.json");
@@ -766,7 +766,7 @@ fn local_cover_requires_a_bounded_png_inside_the_package() -> Result<()> {
 #[test]
 fn two_packages_survive_disable_restart_and_both_uninstall_choices() -> Result<()> {
     let root = std::env::temp_dir().join(format!(
-        "daozai-local-{}-{}",
+        "island-local-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -836,7 +836,7 @@ fn two_packages_survive_disable_restart_and_both_uninstall_choices() -> Result<(
 
 #[test]
 fn deadline_work_never_blocks_frames_or_starts_twice() -> Result<()> {
-    let dir = std::env::temp_dir().join(format!("daozai-frame-test-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("island-frame-test-{}", std::process::id()));
     let mut host = LocalPlugins::open(dir.clone());
     let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("spike/examples/payday/plugin.json");
     host.install(&sample)?;
@@ -869,7 +869,7 @@ fn deadline_work_never_blocks_frames_or_starts_twice() -> Result<()> {
 
 #[test]
 fn delayed_result_discarded_after_disable_uninstall_and_restart_validation() -> Result<()> {
-    let dir = std::env::temp_dir().join(format!("daozai-late-test-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("island-late-test-{}", std::process::id()));
     let mut host = LocalPlugins::open(dir.clone());
     let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("spike/examples/payday/plugin.json");
     let id = "example.payday";
@@ -948,7 +948,7 @@ mod material_tests {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        std::env::temp_dir().join(format!("daozai-material-{}-{nonce}", std::process::id()))
+        std::env::temp_dir().join(format!("island-material-{}-{nonce}", std::process::id()))
     }
 
     fn manifest(id: &str) -> Value {
@@ -1079,7 +1079,7 @@ mod material_tests {
     }
 
     #[test]
-    fn future_material_api_prompts_to_update_daozai_at_installation() -> Result<()> {
+    fn future_material_api_prompts_to_update_island_at_installation() -> Result<()> {
         let root = root();
         let path = package(&root.join("package"), "example.material")?;
         let mut host = LocalPlugins::open(root.join("installed"));
@@ -1090,7 +1090,7 @@ mod material_tests {
             .install(&path)
             .unwrap_err()
             .to_string()
-            .contains("需要更新岛仔"));
+            .contains("需要更新Island"));
 
         future["api"] = json!(2);
         fs::write(&path, serde_json::to_vec(&future)?)?;
@@ -1098,7 +1098,7 @@ mod material_tests {
             .install(&path)
             .unwrap_err()
             .to_string()
-            .contains("需要更新岛仔"));
+            .contains("需要更新Island"));
         assert!(!host.records.contains_key("example.material"));
         fs::remove_dir_all(root)?;
         Ok(())

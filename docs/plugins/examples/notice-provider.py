@@ -1,4 +1,4 @@
-"""演示岛仔短时通知、常驻状态和用户点击回执。"""
+"""演示Island短时通知、常驻状态和用户点击回执。"""
 
 import argparse
 import json
@@ -27,9 +27,9 @@ def publish(credentials_path, method, **fields):
         if response.get("ok"):
             return
         if response.get("error") != "busy":
-            raise RuntimeError(f"岛仔返回 {response.get('error', '未知错误')}")
+            raise RuntimeError(f"Island返回 {response.get('error', '未知错误')}")
         time.sleep(delay)
-    raise RuntimeError("岛仔队列忙，请稍后再试")
+    raise RuntimeError("Island队列忙，请稍后再试")
 
 
 def run(credentials_path):
@@ -48,7 +48,7 @@ def run(credentials_path):
             while time.monotonic() < deadline:
                 pending = send(credentials_path, "poll_open")
                 if not pending.get("ok"):
-                    raise RuntimeError(f"岛仔返回 {pending.get('error', '未知错误')}")
+                    raise RuntimeError(f"Island返回 {pending.get('error', '未知错误')}")
                 request = pending.get("open")
                 if request is not None:
                     handled = request["session"] == session
@@ -61,12 +61,12 @@ def run(credentials_path):
         try:
             send(credentials_path, "status_clear", id=status_id)
         except (OSError, ValueError, KeyError):
-            pass  # 失联时，岛仔会在状态有效期结束后自动撤卡。
+            pass  # 失联时，Island会在状态有效期结束后自动撤卡。
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("credentials", type=Path, help="岛仔设置中复制的凭据文件路径")
+    parser.add_argument("credentials", type=Path, help="Island设置中复制的凭据文件路径")
     args = parser.parse_args()
     try:
         run(args.credentials)

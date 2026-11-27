@@ -29,8 +29,8 @@ const FONT_ZIP_LIMIT: u64 = super::font_assets::PACKAGE_LIMIT + 32 * 1024;
 const CATALOG_LIMIT: u64 = 64 * 1024;
 const AVATAR_LIMIT: u64 = 64 * 1024;
 const CATALOG_FORMAT: u32 = 1;
-const GITEE_REPOSITORY: &str = "xiaotangtoken/xiaotang-daozai-plugins";
-pub(super) const IS_PREVIEW_BUILD: bool = option_env!("DAOZAI_TEST_BUILD").is_some();
+const GITEE_REPOSITORY: &str = "example/island-plugins";
+pub(super) const IS_PREVIEW_BUILD: bool = option_env!("ISLAND_TEST_BUILD").is_some();
 
 fn official_index_path(channel: &str) -> String {
     format!("/api/v5/repos/{GITEE_REPOSITORY}/contents/{channel}/catalog.json")
@@ -38,11 +38,7 @@ fn official_index_path(channel: &str) -> String {
 
 #[cfg(not(test))]
 pub(super) fn official_index_url() -> Result<Url> {
-    let channel = if IS_PREVIEW_BUILD { "preview" } else { "stable" };
-    Ok(Url::parse(&format!(
-        "https://gitee.com{}?ref=master",
-        official_index_path(channel)
-    ))?)
+    Err(fail("Island 暂未配置在线插件目录，可导入本地插件"))
 }
 
 fn allows_market_material(index: Option<&Url>, preview_build: bool, entry: &Entry) -> bool {
@@ -215,7 +211,7 @@ impl Catalog {
         let file: CatalogFile = serde_json::from_slice(bytes)
             .map_err(|error| fail(&format!("集市目录格式无效：{error}")))?;
         if file.format != CATALOG_FORMAT {
-            return Err(fail("当前岛仔不支持此集市目录版本"));
+            return Err(fail("当前Island不支持此集市目录版本"));
         }
         let mut seen = BTreeSet::new();
         for entry in &file.plugins {
@@ -370,7 +366,7 @@ fn download(url: &Url, limit: u64) -> Result<Vec<u8>> {
 fn market_request(agent: &ureq::Agent, url: &Url, accept: &str) -> ureq::Request {
     agent
         .get(url.as_str())
-        .set("User-Agent", concat!("Daozai/", env!("CARGO_PKG_VERSION")))
+        .set("User-Agent", concat!("Island/", env!("CARGO_PKG_VERSION")))
         .set("Accept", accept)
         .set("Cache-Control", "no-cache")
 }
@@ -834,7 +830,7 @@ fn lock_catalog(path: &Path) -> io::Result<File> {
         .write(true)
         .create(true)
         .truncate(false)
-        .open(path.with_file_name(".daozai-test-market.lock"))?;
+        .open(path.with_file_name(".island-test-market.lock"))?;
     lock.lock()?;
     Ok(lock)
 }

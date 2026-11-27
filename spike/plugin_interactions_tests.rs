@@ -17,7 +17,7 @@ impl Fixture {
             .duration_since(std::time::UNIX_EPOCH)?
             .as_nanos();
         let root =
-            std::env::temp_dir().join(format!("daozai-actions-{}-{stamp}", std::process::id()));
+            std::env::temp_dir().join(format!("island-actions-{}-{stamp}", std::process::id()));
         fs::create_dir(&root)?;
         let manifest = root.join("plugin.json");
         fs::write(&manifest, MANIFEST)?;

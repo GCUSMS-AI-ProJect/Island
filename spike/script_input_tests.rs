@@ -195,7 +195,7 @@ fn package_data_validates_names_limits_and_examples() -> Result<()> {
 #[test]
 fn package_data_rejects_hard_links() -> Result<()> {
     let dir = std::env::temp_dir().join(format!(
-        "daozai-data-links-{}-{}",
+        "island-data-links-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -220,7 +220,7 @@ fn package_data_rejects_hard_links() -> Result<()> {
 fn records_restore_maximum_package_data_and_storage_after_json_escaping() -> Result<()> {
     const ID: &str = "example.payday";
     let dir = std::env::temp_dir().join(format!(
-        "daozai-data-snapshot-{}-{}",
+        "island-data-snapshot-{}-{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?

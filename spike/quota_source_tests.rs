@@ -13,7 +13,7 @@ impl Fixture {
             .duration_since(std::time::UNIX_EPOCH)?
             .as_nanos();
         let root =
-            std::env::temp_dir().join(format!("daozai-quota-{}-{unique}", std::process::id()));
+            std::env::temp_dir().join(format!("island-quota-{}-{unique}", std::process::id()));
         fs::create_dir(&root)?;
         Ok(Self(root))
     }

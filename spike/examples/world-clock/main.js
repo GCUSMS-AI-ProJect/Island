@@ -1,4 +1,4 @@
-// 偏移由岛仔换算，时钟在宿主里逐秒走动。
+// 偏移由Island换算，时钟在宿主里逐秒走动。
 function refresh({settings, zones, now}) {
     const cities = JSON.parse(settings.cities);
     const clock = [];

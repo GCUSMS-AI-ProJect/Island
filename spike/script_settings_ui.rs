@@ -35,15 +35,15 @@ pub(super) fn field_row(ui: &mut egui::Ui, plugin: &str, field: &Field, value: &
 
 fn field_label<'a>(plugin: &str, field: &'a Field) -> &'a str {
     match (plugin, field.key.as_str()) {
-        ("daozai.gold", "alert_usd") => "美元提醒价",
-        ("daozai.gold", "alert_cny") => "人民币提醒价",
-        ("daozai.live-pay", "salary") => "月薪",
-        ("daozai.live-pay", "paid") => "照常计薪",
-        ("daozai.live-pay", "pinned_show") => "显示内容",
-        ("daozai.world-clock", "name") => "城市名称",
-        ("daozai.days", "name") => "名称",
-        ("daozai.days", "pinned_text") => "常驻文字",
-        ("daozai.days", "pinned_day") => "常驻日子",
+        ("island.gold", "alert_usd") => "美元提醒价",
+        ("island.gold", "alert_cny") => "人民币提醒价",
+        ("island.live-pay", "salary") => "月薪",
+        ("island.live-pay", "paid") => "照常计薪",
+        ("island.live-pay", "pinned_show") => "显示内容",
+        ("island.world-clock", "name") => "城市名称",
+        ("island.days", "name") => "名称",
+        ("island.days", "pinned_text") => "常驻文字",
+        ("island.days", "pinned_day") => "常驻日子",
         _ => &field.label,
     }
 }
@@ -62,11 +62,11 @@ fn editor(ui: &mut egui::Ui, plugin: &str, field: &Field, value: &mut String) {
                 .iter()
                 .map(|choice| {
                     let label = match (plugin, field.key.as_str(), choice.value.as_str()) {
-                        ("daozai.live-pay", "pinned_show", "amount") => "今日金额",
-                        ("daozai.live-pay", "pinned_show", "countdown") => "倒计时",
-                        ("daozai.live-pay", "pinned_show", "alternate") => "轮换",
-                        ("daozai.world-clock", "pinned_city", "first") => "列表第一城",
-                        ("daozai.world-clock", "pinned_city", "selected") => "页面选中",
+                        ("island.live-pay", "pinned_show", "amount") => "今日金额",
+                        ("island.live-pay", "pinned_show", "countdown") => "倒计时",
+                        ("island.live-pay", "pinned_show", "alternate") => "轮换",
+                        ("island.world-clock", "pinned_city", "first") => "列表第一城",
+                        ("island.world-clock", "pinned_city", "selected") => "页面选中",
                         _ => choice.label.as_str(),
                     };
                     (choice.value.as_str(), label)
@@ -95,9 +95,9 @@ fn editor(ui: &mut egui::Ui, plugin: &str, field: &Field, value: &mut String) {
             let min = f64::from(field.min.unwrap());
             let mut number = value.parse::<f64>().unwrap_or(min);
             let suffix = match (plugin, field.key.as_str()) {
-                ("daozai.gold", "alert_usd") => " 美元/盎司",
-                ("daozai.gold", "alert_cny") => " 元/克",
-                ("daozai.live-pay", "salary") => " 元",
+                ("island.gold", "alert_usd") => " 美元/盎司",
+                ("island.gold", "alert_cny") => " 元/克",
+                ("island.live-pay", "salary") => " 元",
                 _ => field.unit.as_deref().unwrap_or_default(),
             };
             let mut control = egui::DragValue::new(&mut number)
@@ -108,7 +108,7 @@ fn editor(ui: &mut egui::Ui, plugin: &str, field: &Field, value: &mut String) {
                 control = control.fixed_decimals(precision.into());
             }
             let response = ui.scope(|ui| {
-                if matches!(plugin, "daozai.gold" | "daozai.live-pay") {
+                if matches!(plugin, "island.gold" | "island.live-pay") {
                     ui.spacing_mut().interact_size = egui::vec2(124.0, 28.0);
                 }
                 ui.add(control)
@@ -196,10 +196,10 @@ fn editor(ui: &mut egui::Ui, plugin: &str, field: &Field, value: &mut String) {
 
 fn text_editor(ui: &mut egui::Ui, plugin: &str, field: &Field, value: &mut String) {
     let (hint, limit, empty_default) = match (plugin, field.key.as_str()) {
-        ("daozai.world-clock", "name") => ("留空使用时区默认名", 80, true),
-        ("daozai.days", "name") => ("最多 12 字", 12, false),
-        ("daozai.days", "pinned_day") => ("最近的那一天，或填写名称", 80, true),
-        ("daozai.days", "pinned_text") => ("留空使用默认文字", 24, true),
+        ("island.world-clock", "name") => ("留空使用时区默认名", 80, true),
+        ("island.days", "name") => ("最多 12 字", 12, false),
+        ("island.days", "pinned_day") => ("最近的那一天，或填写名称", 80, true),
+        ("island.days", "pinned_text") => ("留空使用默认文字", 24, true),
         _ => {
             ui.text_edit_singleline(value);
             return;
@@ -210,7 +210,7 @@ fn text_editor(ui: &mut egui::Ui, plugin: &str, field: &Field, value: &mut Strin
     let input = egui::TextEdit::singleline(&mut text).hint_text(hint)
         .char_limit(limit).desired_width(width);
     let response = ui.add(input);
-    let response = if plugin == "daozai.days" && field.key == "pinned_text" {
+    let response = if plugin == "island.days" && field.key == "pinned_text" {
         response.on_hover_text("可插入 {名称}、{天数}、{日期}、{星期}")
     } else {
         response
@@ -323,9 +323,9 @@ fn multiline_text(ui: &mut egui::Ui, value: &mut String) -> bool {
 
 fn list_add_label(plugin: &str, key: &str) -> Option<&'static str> {
     match (plugin, key) {
-        ("daozai.live-pay", "breaks") => Some("添加休息时段"),
-        ("daozai.world-clock", "cities") => Some("添加城市"),
-        ("daozai.days", "days") => Some("添加日子"),
+        ("island.live-pay", "breaks") => Some("添加休息时段"),
+        ("island.world-clock", "cities") => Some("添加城市"),
+        ("island.days", "days") => Some("添加日子"),
         _ => None,
     }
 }
@@ -333,11 +333,11 @@ fn list_add_label(plugin: &str, key: &str) -> Option<&'static str> {
 fn list_item_title(plugin: &str, row: &Values) -> String {
     let get = |key| row.get(key).map(String::as_str).unwrap_or("");
     match plugin {
-        "daozai.live-pay" => {
+        "island.live-pay" => {
             let paid = if get("paid") == "true" { "计薪" } else { "不计薪" };
             format!("{}–{} · {paid}", get("from"), get("to"))
         }
-        "daozai.world-clock" => {
+        "island.world-clock" => {
             let zone = get("zone");
             let name = get("name");
             let name = if name.is_empty() { "时区默认名" } else { name };
@@ -407,7 +407,7 @@ fn list_field(ui: &mut egui::Ui, plugin: &str, field: &Field, value: &mut String
                     }
                 });
                 for child in children {
-                    let repeats = plugin == "daozai.days" && child.key == "yearly"
+                    let repeats = plugin == "island.days" && child.key == "yearly"
                         && row.get("kind").is_some_and(|kind| kind == "birthday");
                     let value = row.entry(child.key.clone()).or_insert_with(|| child.default.clone());
                     if !repeats { submit |= field_row(ui, plugin, child, value); }
@@ -442,13 +442,13 @@ mod tests {
     #[test]
     fn official_setting_lists_show_the_saved_item_in_collapsed_state() {
         let title = |plugin, row| list_item_title(plugin, &serde_json::from_value(row).unwrap());
-        assert_eq!(title("daozai.live-pay", serde_json::json!({
+        assert_eq!(title("island.live-pay", serde_json::json!({
             "from":"12:00", "to":"13:30", "paid":"false"
         })), "12:00–13:30 · 不计薪");
-        assert_eq!(title("daozai.world-clock", serde_json::json!({
+        assert_eq!(title("island.world-clock", serde_json::json!({
             "name":"北京", "zone":"Asia/Shanghai"
         })), "北京 · Asia/Shanghai");
-        assert_eq!(title("daozai.days", serde_json::json!({
+        assert_eq!(title("island.days", serde_json::json!({
             "name":"旅行", "kind":"countdown", "date":"2026-12-24"
         })), "旅行 · 倒数 · 2026-12-24");
     }

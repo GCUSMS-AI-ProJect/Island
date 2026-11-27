@@ -1,6 +1,6 @@
-# 岛仔插件运行环境实测
+# Island插件运行环境实测
 
-**评审建议：首发优先考虑 QuickJS。** 岛仔已经随应用发布 QuickJS，作者可以用文本编辑器改脚本；WASM 的优势是 Rust 业务逻辑可以继续用 Rust 编写，指令额度也更容易重复测试。本次只验证同一款倒计时。一次加载十个实例的热中位数为 WASM 4.12 ms、QuickJS 12.28 ms；两者的体积增量分别为 1.163 MiB 和 0.152 MiB。如果首发作者主要是已有 Rust 模块的维护者，值得拿他们实际要迁移的模块再比较一次。最终选型由小唐决定。
+**评审建议：首发优先考虑 QuickJS。** Island已经随应用发布 QuickJS，作者可以用文本编辑器改脚本；WASM 的优势是 Rust 业务逻辑可以继续用 Rust 编写，指令额度也更容易重复测试。本次只验证同一款倒计时。一次加载十个实例的热中位数为 WASM 4.12 ms、QuickJS 12.28 ms；两者的体积增量分别为 1.163 MiB 和 0.152 MiB。如果首发作者主要是已有 Rust 模块的维护者，值得拿他们实际要迁移的模块再比较一次。最终选型由维护者决定。
 
 ## 同一款插件，两套实现
 
@@ -59,7 +59,7 @@
 
 ### 正常岛体装十个插件
 
-这里启动的是正常岛体，使用同一份带两种引擎的 release 程序和独立的数据目录。为保留日常使用的岛仔，测量实例跳过单实例检查、托盘图标和安装体积登记。每个已启用的包有自己的 ID、设置和保存记录，使用发薪倒计时的真实脚本，另在存储里记下成功刷新次数。原生窗口、模块检查、后台运行插件、绘制和系统采样均使用正常入口。
+这里启动的是正常岛体，使用同一份带两种引擎的 release 程序和独立的数据目录。为保留日常使用的Island，测量实例跳过单实例检查、托盘图标和安装体积登记。每个已启用的包有自己的 ID、设置和保存记录，使用发薪倒计时的真实脚本，另在存储里记下成功刷新次数。原生窗口、模块检查、后台运行插件、绘制和系统采样均使用正常入口。
 
 | 开启的倒计时 | 采样时长 | 单核 CPU | 工作集中位 / 峰值 | 各插件成功调用次数（开始 → 结束） |
 | --- | ---: | ---: | ---: | --- |
@@ -106,15 +106,15 @@ rustc $tc --target wasm32-unknown-unknown --crate-type cdylib -C opt-level=s -C 
 foreach ($kind in 'base','js','wasm') {
     $features = @()
     if ($kind -ne 'base') { $features = @('--features', "sdk-$kind") }
-    powershell -NoProfile -ExecutionPolicy Bypass -File spike/cargo-serial.ps1 build --locked --release --bin daozai --target $triple @features
+    powershell -NoProfile -ExecutionPolicy Bypass -File spike/cargo-serial.ps1 build --locked --release --bin message-island --target $triple @features
     if ($LASTEXITCODE -ne 0) { throw "构建失败：$kind" }
-    Copy-Item "target/$triple/release/daozai.exe" "target/spike-$kind.exe"
+    Copy-Item "target/$triple/release/message-island.exe" "target/spike-$kind.exe"
 }
 powershell -NoProfile -ExecutionPolicy Bypass -File spike/cargo-serial.ps1 test --locked --lib --target $triple -- --test-threads=1
 ```
 
-- **试用设置与重启。** 运行 `./target/spike-js.exe --sdk-spike js ui`，把标题改为“发薪”，填入目标日期，点保存。关闭窗口后重开，可核对标题、日期和上次显示的天数。将文件名与参数里的 `js` 一起改成 `wasm` 即可对照。体验完整岛体时可在退出既有岛仔实例后运行 `./target/spike-js.exe --sdk-live js` 或 `./target/spike-wasm.exe --sdk-live wasm`；展开待办页看卡片，从待办对应设置调参数。
-- **复测与截图。** 安装 Python 的 `psutil` 后运行 `python -X utf8 spike/measure.py target/review-01`。每次指定一个新目录，脚本复制样例供修改，测试设置、截图和原始数据均写到该目录。两次手工打开验证窗口默认共用临时目录下的 `daozai-sdk-spike/<引擎>/ui`；可用 `DAOZAI_SPIKE_DATA` 指向全新目录，`DAOZAI_SPIKE_PLUGINS` 指向自己的样例复制件。
+- **试用设置与重启。** 运行 `./target/spike-js.exe --sdk-spike js ui`，把标题改为“发薪”，填入目标日期，点保存。关闭窗口后重开，可核对标题、日期和上次显示的天数。将文件名与参数里的 `js` 一起改成 `wasm` 即可对照。体验完整岛体时可在退出既有Island实例后运行 `./target/spike-js.exe --sdk-live js` 或 `./target/spike-wasm.exe --sdk-live wasm`；展开待办页看卡片，从待办对应设置调参数。
+- **复测与截图。** 安装 Python 的 `psutil` 后运行 `python -X utf8 spike/measure.py target/review-01`。每次指定一个新目录，脚本复制样例供修改，测试设置、截图和原始数据均写到该目录。两次手工打开验证窗口默认共用临时目录下的 `island-sdk-spike/<引擎>/ui`；可用 `ISLAND_SPIKE_DATA` 指向全新目录，`ISLAND_SPIKE_PLUGINS` 指向自己的样例复制件。
 - **回归。** 默认 release 构建成功；按任务指定命令运行现有库测试，1280 项通过、0 项失败，另有仓库原标记忽略的 129 项。SDK 验证单独运行，不计入这 1280 项。
 
 正式权限和版本约定、建议值及待决定事项见 [SDK v1 设计评审稿](sdk-v1-design.md)。
@@ -124,12 +124,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File spike/cargo-serial.ps1 test 
 从仓库根目录运行以下命令。第二个参数给一个全新的目录。脚本按顺序启动测试窗口和正常岛体，用独立数据目录，结束时只关闭自己启动的进程。
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File spike/cargo-serial.ps1 build --locked --release --features sdk-js,sdk-wasm --bin daozai --target x86_64-pc-windows-msvc
-python -X utf8 spike/measure_cpu.py target/x86_64-pc-windows-msvc/release/daozai.exe target/cpu-review-new
+powershell -NoProfile -ExecutionPolicy Bypass -File spike/cargo-serial.ps1 build --locked --release --features sdk-js,sdk-wasm --bin message-island --target x86_64-pc-windows-msvc
+python -X utf8 spike/measure_cpu.py target/x86_64-pc-windows-msvc/release/message-island.exe target/cpu-review-new
 ```
 
 ## 升级 rquickjs 0.8.1 到 0.14.0 的影响
 
-rquickjs 是岛仔用 Rust 调用 QuickJS 的库。核对了 0.14.0 的上游源码，内存限制、栈限制、中断检查以及把结果转回 JSON 的接口仍在。需要一起核对三处调用：本地插件的每次全新执行、运行环境验证里的宿主函数，以及正式版中转站额度脚本的响应提取。升级会同时替换底层 C 引擎、Windows 构建依赖和锁文件。现有接口名字相同，只能减少改代码的范围，异常、超时、内存限额和字符转换仍需执行验证。[上游运行时实现](https://docs.rs/rquickjs-core/0.14.0/src/rquickjs_core/runtime/base.rs.html) · [上下文和 JSON 转换](https://docs.rs/rquickjs-core/0.14.0/src/rquickjs_core/context/ctx.rs.html)
+rquickjs 是Island用 Rust 调用 QuickJS 的库。核对了 0.14.0 的上游源码，内存限制、栈限制、中断检查以及把结果转回 JSON 的接口仍在。需要一起核对三处调用：本地插件的每次全新执行、运行环境验证里的宿主函数，以及正式版中转站额度脚本的响应提取。升级会同时替换底层 C 引擎、Windows 构建依赖和锁文件。现有接口名字相同，只能减少改代码的范围，异常、超时、内存限额和字符转换仍需执行验证。[上游运行时实现](https://docs.rs/rquickjs-core/0.14.0/src/rquickjs_core/runtime/base.rs.html) · [上下文和 JSON 转换](https://docs.rs/rquickjs-core/0.14.0/src/rquickjs_core/context/ctx.rs.html)
 
 建议按中等改造成本、高验证优先级安排。正式接收社区代码前，在单独分支升级，复跑两个官方原包、额度提取、死循环、内存超限和拒绝访问的用例，再比较默认版体积、冷启动和十插件负载。通过后切换并保留上一个可用版本以便回退。本轮依赖仍锁定 0.8.1，0.14.0 的编译和运行兼容性留给升级分支实测。

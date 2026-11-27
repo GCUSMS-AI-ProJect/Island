@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "岛仔 SDK v1 插件清单（评审稿）",
+  "title": "Island SDK v1 插件清单（评审稿）",
   "type": "object",
   "properties": {
     "id": {
@@ -50,7 +50,7 @@
     },
     "api": {
       "const": 1,
-      "description": "插件要求的接口主版本。高于宿主支持版本时，安装提示需要更新岛仔。"
+      "description": "插件要求的接口主版本。高于宿主支持版本时，安装提示需要更新Island。"
     },
     "runtime": {
       "enum": [
@@ -979,7 +979,7 @@
     {
       "if": {
         "anyOf": [
-          {"properties": {"id": {"const": "daozai.wireless-receivers"}}},
+          {"properties": {"id": {"const": "island.wireless-receivers"}}},
           {"properties": {"owner": {"const": "wireless"}}},
           {"properties": {"capabilities": {"contains": {"const": "wireless.receivers"}}}}
         ]
@@ -987,7 +987,7 @@
       "then": {
         "required": ["entry", "settings"],
         "properties": {
-          "id": {"const": "daozai.wireless-receivers"},
+          "id": {"const": "island.wireless-receivers"},
           "runtime": {"const": "assets"},
           "owner": {"const": "wireless"},
           "entry": {"const": "wireless-receivers.json"},

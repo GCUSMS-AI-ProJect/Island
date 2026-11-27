@@ -72,14 +72,14 @@ def measure(exe, directory, kind, interval, installed, legacy_vsync):
     directory.mkdir()
     data = directory / "data"
     counters = directory / "frames.txt"
-    env = dict(os.environ, DAOZAI_DATA_DIR=str(data), DAOZAI_SPIKE_DATA=str(directory / "preview"),
-               APPDATA=str(directory / "roaming"), DAOZAI_SPIKE_COUNTERS=str(counters))
-    env.pop("DAOZAI_SPIKE_REDRAW_MS", None)
-    env.pop("DAOZAI_SPIKE_LEGACY_VSYNC", None)
+    env = dict(os.environ, ISLAND_DATA_DIR=str(data), ISLAND_SPIKE_DATA=str(directory / "preview"),
+               APPDATA=str(directory / "roaming"), ISLAND_SPIKE_COUNTERS=str(counters))
+    env.pop("ISLAND_SPIKE_REDRAW_MS", None)
+    env.pop("ISLAND_SPIKE_LEGACY_VSYNC", None)
     if legacy_vsync:
-        env["DAOZAI_SPIKE_LEGACY_VSYNC"] = "1"
+        env["ISLAND_SPIKE_LEGACY_VSYNC"] = "1"
     if interval:
-        env["DAOZAI_SPIKE_REDRAW_MS"] = str(interval)
+        env["ISLAND_SPIKE_REDRAW_MS"] = str(interval)
     preview = installed is None
     if preview:
         args = ["--sdk-spike", kind, "ui"]

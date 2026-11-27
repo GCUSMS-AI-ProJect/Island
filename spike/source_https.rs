@@ -19,7 +19,7 @@ use url::{Host, Url};
 const LIMIT: u64 = 256 * 1024;
 const TIMEOUT: Duration = Duration::from_secs(10);
 const ADDRESS_ERROR: &str = "请输入白名单域名下的 HTTPS 地址，端口使用 443";
-const SERVICE: &str = "daozai.plugin-https-source";
+const SERVICE: &str = "island.plugin-https-source";
 pub(super) const MIN_REFRESH_SECONDS: u32 = 60;
 pub(super) const MAX_REFRESH_SECONDS: u32 = 86400;
 pub(super) const REFRESH_FIELD: &str = "";
@@ -206,7 +206,7 @@ impl Network {
             None => None,
         };
         let deadline = Instant::now() + TIMEOUT;
-        let gold = id == "daozai.gold" && url.host_str() == Some("xaus.com")
+        let gold = id == "island.gold" && url.host_str() == Some("xaus.com")
             && url.path() == "/api/v1/spot" && self.credential.is_none();
         let agent = ureq::AgentBuilder::new()
             .try_proxy_from_env(false)
@@ -480,7 +480,7 @@ fn resolve_public(address: &str, deadline: Instant, gold: bool) -> io::Result<Ve
     }
     let (send, receive) = mpsc::sync_channel(1);
     if let Err(error) = std::thread::Builder::new()
-        .name("daozai-plugin-dns".into())
+        .name("island-plugin-dns".into())
         .spawn(move || {
             let addresses = target.to_socket_addrs().map(|items| items.collect::<Vec<_>>());
             RESOLVING.store(false, Ordering::Release);

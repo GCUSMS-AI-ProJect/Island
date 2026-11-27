@@ -21,7 +21,7 @@
 开工命令以第 1 步为例：
 
 ```powershell
-git worktree add -b feat/plugin-actions "D:\A-TangHao\REA\Windows小工具\01-专项工程\插件按钮与事件" feat/plugin-capability-table
+git worktree add -b feat/plugin-actions "D:\Island" feat/plugin-capability-table
 ```
 
 ## 首批官方插件和它们要用的能力
@@ -42,20 +42,20 @@ git worktree add -b feat/plugin-actions "D:\A-TangHao\REA\Windows小工具\01-�
 
 ## 已定的方向
 
-- 作者用岛仔提供的组件描述界面，用少量主题令牌调样式，岛仔负责绘制。不做自由绘制，也不嵌网页。
-- 需要每秒变化的内容（跳动的数字、时钟、倒计时）由岛仔在本地逐帧计算，不让脚本每秒运行一次。
-- 不做发布者签名。插件照旧在插件仓审 PR，由小唐本人过目后发布。
+- 作者用Island提供的组件描述界面，用少量主题令牌调样式，Island负责绘制。不做自由绘制，也不嵌网页。
+- 需要每秒变化的内容（跳动的数字、时钟、倒计时）由Island在本地逐帧计算，不让脚本每秒运行一次。
+- 不做发布者签名。插件照旧在插件仓审 PR，由维护者过目后发布。
 - 不引入付费服务或付费证书。
 - 各任务负责数据约定、校验、运行逻辑和测试。界面先用宿主现有控件画出能用的样子，最终的视觉设计由验收方统一来做。
 
 ## 共同规则
 
 - 所有回复用中文。
-- 本机 Cargo 命令一律通过 `spike/cargo-serial.ps1` 运行，它会持有互斥锁 `Local\Daozai.Cargo`，并行度为 1。
+- 本机 Cargo 命令一律通过 `spike/cargo-serial.ps1` 运行，它会持有互斥锁 `Local\Island.Cargo`，并行度为 1。
 - 每个工作树只用自己目录下的 `target`，不设 `CARGO_TARGET_DIR`。新工作树第一次编译大约需要 12 分钟。
 - 这些任务**只提交到自己的分支**：
   - 不合进 `test/acceptance` 或 `main`；
-  - 不编译 release，不替换桌面「岛仔－当前测试版」；
+  - 不编译 release，不替换桌面「Island－当前测试版」；
   - 不推送到 GitHub。
 
   验收、合并和出包由验收方统一处理。

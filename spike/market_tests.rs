@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn market_package_preserves_declared_data() -> Result<()> {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("spike/examples/holidays/plugin.json");
-    let zip = std::env::temp_dir().join(format!("daozai-package-data-{}.zip", std::process::id()));
+    let zip = std::env::temp_dir().join(format!("island-package-data-{}.zip", std::process::id()));
     let result = (|| -> Result<()> {
         pack(&manifest, &zip)?;
         let package = decode_zip(&fs::read(&zip)?, true)?;
@@ -138,10 +138,10 @@ fn raw_fallback_requires_rate_limiting_and_the_same_gitee_file() -> Result<()> {
     assert!(!gitee_rate_limited(404, &b"Rate Limit Exceeded"[..]));
     assert!(!gitee_rate_limited(403, &vec![b'x'; 4096][..]));
 
-    let base = "https://gitee.com/api/v5/repos/xiaotangtoken/xiaotang-daozai-plugins/contents/";
+    let base = "https://gitee.com/api/v5/repos/example/island-plugins/contents/";
     let source = Url::parse(&format!("{base}preview/catalog.json?ref=master"))?;
     let raw = gitee_raw_url(&source).unwrap();
-    let raw_path = "/xiaotangtoken/xiaotang-daozai-plugins/raw/master/preview/catalog.json";
+    let raw_path = "/example/island-plugins/raw/master/preview/catalog.json";
     assert_eq!(raw.as_str(), format!("https://gitee.com{raw_path}"));
     assert!(gitee_raw_url(&Url::parse(&format!(
         "{base}stable/avatar-author.png?ref=master"
@@ -161,7 +161,7 @@ fn raw_fallback_requires_rate_limiting_and_the_same_gitee_file() -> Result<()> {
         source
             .as_str()
             .replace("gitee.com/", "gitee.com.evil.invalid/"),
-        source.as_str().replace("xiaotangtoken/", "another-owner/"),
+        source.as_str().replace("example/", "another-owner/"),
     ] {
         assert!(gitee_raw_url(&Url::parse(&invalid)?).is_none(), "{invalid}");
     }
@@ -192,7 +192,7 @@ struct Fixture(PathBuf);
 impl Fixture {
     fn new() -> Result<Self> {
         let path = std::env::temp_dir().join(format!(
-            "daozai-market-{}-{}",
+            "island-market-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)?
@@ -291,8 +291,8 @@ fn market_author_packages_and_submits_immutable_versions() -> Result<()> {
         "updated_on": "2026-11-21",
         "official": true,
         "sample": true,
-        "maintainer": "Renly1994",
-        "author_avatar": "avatar-renly1994.png",
+        "maintainer": "island-fixture",
+        "author_avatar": "avatar-island-fixture.png",
         "downloads": 22,
         "favorites": 0
     });
@@ -396,7 +396,7 @@ fn publish_wireless(root: &Path, version: &str, data_version: &str) -> Result<()
     let manifest = json!({
         "id": WIRELESS_PLUGIN_ID,
         "name": "无线设备兼容包",
-        "author": "岛仔",
+        "author": "Island",
         "version": version,
         "api": 1,
         "runtime": "assets",
@@ -548,7 +548,7 @@ fn market_rejects_invalid_archives_and_catalogs() -> Result<()> {
     for presentation in [
         json!({"updated_on": "2026-13-01"}),
         json!({"author_avatar": "https://example.invalid/avatar.png"}),
-        json!({"author_avatar": "../avatar-renly1994.png"}),
+        json!({"author_avatar": "../avatar-island-fixture.png"}),
         json!({"maintainer": "@island"}),
         json!({"downloads": -1}),
     ] {
@@ -658,7 +658,7 @@ fn online_market_material_is_limited_to_preview_or_the_reviewed_stable_package()
             trusted.as_str().replace("https://", "http://"),
             trusted.as_str().replace("gitee.com/", "example.com/"),
             trusted.as_str().replace("gitee.com/", "gitee.com:8443/"),
-            trusted.as_str().replace(GITEE_REPOSITORY, "another/daozai-plugins"),
+            trusted.as_str().replace(GITEE_REPOSITORY, "another/island-plugins"),
             trusted.as_str().replace("catalog.json", "alternate.json"),
         ] {
             let index = Url::parse(&untrusted)?;

@@ -1,8 +1,8 @@
-# 岛仔插件 SDK v1
+# Island插件 SDK v1
 
 ## 1. 插件如何工作
 
-SDK 是岛仔提供给插件作者的一组公开约定。宿主指运行插件的岛仔。你提供一份清单和几段函数，岛仔负责调用、画界面和保存结果。
+SDK 是Island提供给插件作者的一组公开约定。宿主指运行插件的Island。你提供一份清单和几段函数，Island负责调用、画界面和保存结果。
 
 第一版采用**每次调用都从头运行**的写法。函数只根据输入计算并返回结果，需要记住的内容放进返回值的 `storage`。两次调用之间，脚本变量会消失。宿主负责安排刷新、读取已授权的数据源和接收用户点击。当前 Windows 测试版可运行 QuickJS 待办卡片、日程日期标注、AI 额度来源与独立状态页。[运行环境实测](runtime-spike.md) · [本地安装](local-install.md)
 
@@ -27,12 +27,12 @@ function refresh({ settings, today }) {
 | 文字卡、私有存储 · 已实现 | 上例返回 card 和 storage。首次的 storage 为 null，之后可用 `storage?.lastDays` 读回天数 | `owner: "tasks"` 显示在待办页 |
 | 日期标注 · 已实现 | 声明 `calendar.marker`，`refresh` 返回 `marker`，空字表示当天不标注。旧版 `owner: "calendar"` 加 `card` 的写法继续有效，`card` 即标注 | 展开「日程 → 日历」查看电脑当天日期下方的标注 |
 | 一个插件多处输出 · 测试版 | 在 capabilities 里同时列出几种输出，例如 `["card","calendar.marker","timer"]`，一次返回 `{card, marker}`。同时有多种输出时，某项返回空值表示这次不显示 | 每处输出只跟着自己所在模块的开关，关日程只撤日历标注；关掉插件归属的模块则整个插件暂停 |
-| 周期刷新 · 已实现 | 两个样例在清单声明 `"refreshSeconds":60` 和 timer 能力。到期由岛仔调用 refresh | 卡片按期更新 |
+| 周期刷新 · 已实现 | 两个样例在清单声明 `"refreshSeconds":60` 和 timer 能力。到期由Island调用 refresh | 卡片按期更新 |
 | 岛上常驻位 · 实验 | 声明 `island.pinned`，通过 `refresh` 返回 `pinned:{text:"今日金价",value:"850 元/克",icon:"coin"}` | 收起时各插件一起显示，用户可调整顺序 |
 | 结构化状态卡和独立详情页 · 测试版 | 清单使用 `"owner":"status"` 和 `"capabilities":["status.page","timer"]`，`refresh` 返回 `status`。可用 `statusLayout` 选择组件、排序和样式。 | 在岛上翻页查看，在「设置 → 页面管理 → 状态详情」单独启停 |
-| 状态页组件与主题令牌 · 实验 | 在状态页布局中添加列表、迷你折线、多行说明和标签，可设强调色、强调程度及岛仔内置图标 | 在状态详情页查看 |
+| 状态页组件与主题令牌 · 实验 | 在状态页布局中添加列表、迷你折线、多行说明和标签，可设强调色、强调程度及Island内置图标 | 在状态详情页查看 |
 | 自绘画布 · 实验 | 同时声明 `status.page` 和 `status.canvas`，脚本返回画布的图元与样式 | 可填满状态详情页或与标准组件混排 |
-| 实时状态组件与敏感值 · 实验 | 布局选择 `counter`、`clock`、`countdown`，由岛仔计算实时读数。金额等数据须标记 `sensitive:true`。 | 在状态详情页查看，点击暂时显示敏感值 |
+| 实时状态组件与敏感值 · 实验 | 布局选择 `counter`、`clock`、`countdown`，由Island计算实时读数。金额等数据须标记 `sensitive:true`。 | 在状态详情页查看，点击暂时显示敏感值 |
 | 状态详情交互 · 实验 | 同时声明 `action` 和 `status.page`。可使用按钮、文本表单、可点的列表项，以及宿主的打开链接和复制动作 | 在状态详情输入内容或点击操作 |
 | 可编辑独立模块 · 待宿主实现 | 清单声明 module 与按钮 `actions:["save"]`。示意 `function action(i){return {page:{kind:"detail",text:i.form.text},storage:{note:i.form.text}}}` | 岛上功能栏查看、编辑，侧栏调偏好，页面管理启停 |
 | 日程来源 · 待宿主实现 | `function refresh(i){return {calendar:[{id:"anniversary",title:i.settings.title,date:i.settings.target}]}}` | 日程里的来源，按来源和条目 ID 更新 |
@@ -45,18 +45,18 @@ function refresh({ settings, today }) {
 | 功能图标 · 测试版 | `runtime: "assets"`、`owner: "appearance"`、`appearance.icon`，入口 `icons.json` | 设置 → 外观 → 功能图标，替换设置侧栏及功能标题卡图标 |
 | 吉祥物表情 · 测试版 | `runtime: "assets"`、`owner: "appearance"`、`appearance.pet`，入口 `expressions.json` | 设置 → 外观 → 吉祥物表情，沿用原动作的触发时机与帧速 |
 | 画布字体 · 测试版 | `runtime: "assets"`、`owner: "appearance"`、`appearance.font`，入口 `fonts.json` | 在已安装插件中启用，画布文字按名称引用 |
-| 底部快捷切换 · 已实现 | 声明 `runtime: "assets"`、`owner: "pages"` 和 `navigation.shortcuts`，在 `shortcuts.json` 配置选中配色 | 展开岛仔，点击底部图标直达已启用页面。设置归属「页面管理」 |
+| 底部快捷切换 · 已实现 | 声明 `runtime: "assets"`、`owner: "pages"` 和 `navigation.shortcuts`，在 `shortcuts.json` 配置选中配色 | 展开Island，点击底部图标直达已启用页面。设置归属「页面管理」 |
 | GPU 材质 · 已实现 | 清单用 `runtime: "material"`、`owner: "appearance"`、`appearance.material` 能力和 `screen.backdrop` 权限。WGSL 入口实现 `material()`，沿用[材质接口](gpu-material.md) | 「设置 → 外观 → 材质」，同一时间选用一个材质，需开启 Direct3D 12 兼容渲染 |
 
 action 接收按钮 ID 和表单值，event 接收事件名和事件数据。两个入口沿用 refresh 的输出与私有存储格式。
 
 ## 3. 用户去哪里用，去哪里调
 
-岛仔用一张能力表核对清单（[能力表](../../spike/capabilities.rs)）。每种能力写明需要的运行环境、落在哪里，以及能否和别的能力同时声明。`owner` 只决定插件设置放在哪个设置页，以及哪个模块关掉时整个插件暂停。脚本插件的归属可选 tasks、calendar、quota、status，并且至少要带上这个归属自己的输出：tasks 带 card，calendar 带 card 或 calendar.marker，quota 带 quota.source，status 带 status.page。材质、皮肤、图标、表情、快捷切换和无线设备兼容包各自独占一个包。外观资源包只声明一种能力，`permissions` 填 `{}`，`settings` 填 `[]`。
+Island用一张能力表核对清单（[能力表](../../spike/capabilities.rs)）。每种能力写明需要的运行环境、落在哪里，以及能否和别的能力同时声明。`owner` 只决定插件设置放在哪个设置页，以及哪个模块关掉时整个插件暂停。脚本插件的归属可选 tasks、calendar、quota、status，并且至少要带上这个归属自己的输出：tasks 带 card，calendar 带 card 或 calendar.marker，quota 带 quota.source，status 带 status.page。材质、皮肤、图标、表情、快捷切换和无线设备兼容包各自独占一个包。外观资源包只声明一种能力，`permissions` 填 `{}`，`settings` 填 `[]`。
 
 外观资源包由 `plugin.json`、入口文件和 `cover.png` 组成，本地开发目录也可带说明文件。皮肤、图标和表情的集市 ZIP 上限为 832 KiB，字体包另有文件限制。各类入口使用 UTF-8 JSON。
 
-- 画布字体包的 `fonts.json` 格式为 `{"fonts":[{"name":"站酷快乐体","file":"ZCOOLKuaiLe-Regular.ttf"}]}`。可列出 1 至 4 个名称和文件各不相同的字型，支持 TTF 与 OTF，单个最多 8 MiB，整包最多 16 MiB。包根目录须有 `LICENSE` 或 `OFL.txt`。启用后，画布文字可用 `font:"站酷快乐体"`，宿主以 `plugin:站酷快乐体` 注册。缺字、停用或卸载时沿用岛仔字体。 [站酷快乐体样例](../../spike/examples/font-zh/plugin.json) · [Google Fonts 字体许可](https://github.com/google/fonts/blob/main/ofl/zcoolkuaile/OFL.txt)
+- 画布字体包的 `fonts.json` 格式为 `{"fonts":[{"name":"站酷快乐体","file":"ZCOOLKuaiLe-Regular.ttf"}]}`。可列出 1 至 4 个名称和文件各不相同的字型，支持 TTF 与 OTF，单个最多 8 MiB，整包最多 16 MiB。包根目录须有 `LICENSE` 或 `OFL.txt`。启用后，画布文字可用 `font:"站酷快乐体"`，宿主以 `plugin:站酷快乐体` 注册。缺字、停用或卸载时沿用Island字体。 [站酷快乐体样例](../../spike/examples/font-zh/plugin.json) · [Google Fonts 字体许可](https://github.com/google/fonts/blob/main/ofl/zcoolkuaile/OFL.txt)
 
 - 皮肤包入口最多 4 KiB，例如 `{"base":"cream","colors":{"paper":"#F4F8F6","ink":"#20382F","accent":"#248161"}}`。经典 `classic` 和奶油 `cream` 开放 `paper`（底色）、`ink`（文字）和 `accent`（强调色）。毛玻璃 `glass_light`、`glass_dark` 和悬浮云 `fluid` 开放 `accent`，保留原来的透明度和纹理。至少提供一个 `#RRGGBB` 颜色。缺少的颜色沿用基础皮肤。可参考[青瓷皮肤样例](../../spike/examples/celadon-skin/plugin.json)。
 - 图标包入口最多 128 KiB，格式为 `{"icons":{"music":"<svg …>…</svg>"}}`。功能页键可用 `music`、`focus`、`health`、`shelf`、`tasks`、`mail`、`quota`、`calendar`、`weather`、`performance`、`wireless`。每个 SVG 最多 8 KiB，声明 SVG 命名空间与 `viewBox`，使用路径、基础形状和分组，可用十六进制颜色、`none` 或 `currentColor`。禁止脚本、样式表、外部资源和 `foreignObject`。
@@ -64,11 +64,11 @@ action 接收按钮 ID 和表单值，event 接收事件名和事件数据。两
 
 用户习惯去原功能完成的事，可以往原设置页加一项。皮肤进入外观选择器，歌词来源进入音乐设置。只需要看一眼的内容可以做卡片，少量参数仍放在所属页。
 
-用户要反复编辑便签、管理纪念日，或专门查看打印进度、温度和告警时，可以新增独立模块。作者选择展示内容与样式，岛仔负责字体、缩放和点击。正文和一次性输入在功能页编辑，默认排序等偏好在模块设置页修改。
+用户要反复编辑便签、管理纪念日，或专门查看打印进度、温度和告警时，可以新增独立模块。作者选择展示内容与样式，Island负责字体、缩放和点击。正文和一次性输入在功能页编辑，默认排序等偏好在模块设置页修改。
 
 状态详情页通过 `owner: "status"` 和 `status.page` 接入，按照插件 ID 找到页面和独立开关。岛上的齿轮与「已安装」里的页面路径都进入页面管理。可编辑独立模块的设计使用 `owner: "self"` 和 `module`。
 
-每个插件只有一个主要设置归属。「已安装」每行统一提供路径（前往设置）、开关和「···」菜单（查看详情、反馈问题、卸载）。列表按设置归属分组，材质组同时只开一个。页面管理控制模块运行。设置页复用岛仔已有的开关、选择、数字、文本行和功能标题卡，保留必要设置与关键提醒，合并重复提示，内容多时才收起低频选项。
+每个插件只有一个主要设置归属。「已安装」每行统一提供路径（前往设置）、开关和「···」菜单（查看详情、反馈问题、卸载）。列表按设置归属分组，材质组同时只开一个。页面管理控制模块运行。设置页复用Island已有的开关、选择、数字、文本行和功能标题卡，保留必要设置与关键提醒，合并重复提示，内容多时才收起低频选项。
 
 插件提供的设置项在所属设置页使用统一样式。标题旁显示「插件」小标，插件开关开启时用紫色，关闭时用灰色。复用宿主现有的小标和开关组件。页面快捷切换等显示偏好开关也使用该样式，各自保存对应的显示选择。
 
@@ -101,11 +101,11 @@ action 接收按钮 ID 和表单值，event 接收事件名和事件数据。两
 | 停用或卸载正在使用的图标包或表情包 | 立即换回对应的内置素材 |
 | 停用后重启，或卸载 | 停用立即撤下输出，宿主停止发起新调用。已经开始的一次计算即使稍后返回也丢弃结果。重启保持停用，卸载可选择保留或删除数据 |
 
-修改设置、关上级模块或重新安装时，同样作废此前发出的计算。插件重新启用后按当前设置重新计算。单选来源由岛仔记住，当前来源不可用时回到最近一次可用的选择。未获授权、执行出错或超时的调用，其结果一律作废。
+修改设置、关上级模块或重新安装时，同样作废此前发出的计算。插件重新启用后按当前设置重新计算。单选来源由Island记住，当前来源不可用时回到最近一次可用的选择。未获授权、执行出错或超时的调用，其结果一律作废。
 
 ## 5. 谁可以读什么
 
-权限说明用户允许岛仔替这个插件做哪些事。安装前看作者、归属和权限摘要，首次启用确认具体用途，更新时新增的权限单独确认。撤权后岛仔停止取数并丢弃旧请求的结果。
+权限说明用户允许Island替这个插件做哪些事。安装前看作者、归属和权限摘要，首次启用确认具体用途，更新时新增的权限单独确认。撤权后Island停止取数并丢弃旧请求的结果。
 
 JS 卡片可用空权限，或申请一个本地只读数据源。材质插件首次启用时单独确认 `screen.backdrop` 权限，岛背后的像素只在本机用于材质绘制，着色器可采样底片纹理，像素不保存、不上传。
 
@@ -141,7 +141,7 @@ JS 卡片可用空权限，或申请一个本地只读数据源。材质插件�
 
 [国际现货金价样例](../../spike/examples/gold-price)可直接试装，演示迷你折线和阈值提醒。XAUS 的 `/api/v1/spot?currency=CNY&unit=gram` 可返回人民币每克的国际现货参考报价。XAUS 要求至少缓存 60 秒，高用量商业集成应按其公平使用说明联系服务方。[XAUS API 公平使用说明](https://xaus.com/api/#fair-use)
 
-样例把最近 48 个新报价存入 `storage.points` 并绘制趋势。价格向上或向下穿越阈值时，岛仔显示一次性提醒，报价时刻用于提醒去重。独立验证本步 HTTPS 时可试装[仓库动态样例](../../spike/examples/https-repository)。
+样例把最近 48 个新报价存入 `storage.points` 并绘制趋势。价格向上或向下穿越阈值时，Island显示一次性提醒，报价时刻用于提醒去重。独立验证本步 HTTPS 时可试装[仓库动态样例](../../spike/examples/https-repository)。
 
 `network.sources` 按清单中的 key 向脚本提供 `sources`，例如 `sources.gold`。文件、本机 HTTP 和旧版单一 HTTPS 仍使用 `source`。每个来源未授权为 `{status:"unconfigured"}`，无法读取为 `{status:"offline"}`，读取成功为 `{status:"ready",text:"…"}`。校验和打包时传入 `unconfigured`。单个来源失败后独立退避，间隔依次为正常值的 1、2、4、8 倍，退避上限为 30 分钟，并遵守用户设置的正常间隔。成功一次后恢复正常周期。
 
@@ -252,11 +252,11 @@ JS 清单使用 `"owner":"status"`，能力列出 `status.page`。可选的 `tim
 | `counter`、`clock`、`countdown` | 用对应的字段在宿主计算读数。按秒或分钟的边界重绘，脚本按原周期刷新 |
 | `canvas` | 绘制返回值中与 `status` 同级的 `canvas`，需要 `status.canvas` 能力 |
 
-`style` 可以省略。强调色 `accent` 使用六位 `#RRGGBB`，岛仔按实际底色校正到至少 3:1，省略时沿用岛仔默认状态色。间距 `density` 可选 `comfortable`（默认）或 `compact`。紧凑模式最多显示 3 项列表、2 行说明、3 个标签。背景 `surface` 可选 `card`（默认）或 `plain`。强调程度 `emphasis` 可选 `normal`（默认）或 `strong`，作用于状态标题和折线。`icon` 可将岛仔内置的 `battery`、`cup`、`clock`、`chart`、`cloud` 或 `calendar` 图标放到状态标题旁。
+`style` 可以省略。强调色 `accent` 使用六位 `#RRGGBB`，Island按实际底色校正到至少 3:1，省略时沿用Island默认状态色。间距 `density` 可选 `comfortable`（默认）或 `compact`。紧凑模式最多显示 3 项列表、2 行说明、3 个标签。背景 `surface` 可选 `card`（默认）或 `plain`。强调程度 `emphasis` 可选 `normal`（默认）或 `strong`，作用于状态标题和折线。`icon` 可将Island内置的 `battery`、`cup`、`clock`、`chart`、`cloud` 或 `calendar` 图标放到状态标题旁。
 
 [打印机状态样例](../../spike/examples/printer-status/plugin.json) 通过模拟脚本演示列表、折线、说明、标签和主题令牌。[实时工资](../../spike/examples/live-pay/plugin.json) 和 [世界时钟](../../spike/examples/world-clock/plugin.json) 分别演示敏感实时金额、常驻上下班倒计时，以及最多四个可配置的城市时钟。世界时钟由宿主换算所选 IANA 时区。
 
-敏感值默认打码，点击后显示 30 秒，再次点击可立即盖上。敏感计数参数更新后重新打码。锁屏、岛仔演示录制及开启「截图和录屏中隐藏岛仔」时始终打码。使用第三方录屏前可开启此设置。
+敏感值默认打码，点击后显示 30 秒，再次点击可立即盖上。敏感计数参数更新后重新打码。锁屏、Island演示录制及开启「截图和录屏中隐藏Island」时始终打码。使用第三方录屏前可开启此设置。
 
 返回 `{status:null}` 时显示等待状态。取数失败会撤下旧读数，在本页显示数据源暂不可用。来源正常返回 `state:"offline"` 时，按插件提供的设备离线状态展示。宿主按插件 ID 分开刷新和撤下状态。
 
@@ -308,11 +308,11 @@ function refresh() {
 
 坐标须为 -2000 至 2000 的有限数字，字号为 6 至 96，文字总计最多 2000 字。画布及其分组总计最多 1500 个图元，嵌套 8 层，路径命令合计最多 4000 个。画布或其中的图片引用不合规时，页面显示「插件画面有误」，开发者工具显示原因。宿主先画出完整首帧，后续绘制超过 4 毫秒预算时沿用缓存画面，并在开发者工具记录。
 
-`canvas` 为对象时，展示结果上限为 64 KiB，私有存储另计。宿主默认使用岛仔字体，画布隐私遵循岛仔的「截图和录屏中隐藏」设置。
+`canvas` 为对象时，展示结果上限为 64 KiB，私有存储另计。宿主默认使用Island字体，画布隐私遵循Island的「截图和录屏中隐藏」设置。
 
 ##### 实时绑定
 
-把实时值写在画布的 `binds` 中。岛仔计算值并按最近的可见变化安排重绘，脚本保持原有刷新周期。
+把实时值写在画布的 `binds` 中。Island计算值并按最近的可见变化安排重绘，脚本保持原有刷新周期。
 
 | 来源 | 声明与结果 |
 | --- | --- |
@@ -323,7 +323,7 @@ function refresh() {
 | 现在 | `{now:"HH:mm",zone:"Asia/Shanghai"}`。提供时间文字，也支持 `HH:mm:ss`。省略 `zone` 时使用本机时区 |
 | 日夜 | `{daylight:{zone:"Asia/Shanghai",hours:[6,18]}}`。当地时间前闭后开，区间内为 1，区间外为 0。结束小时小于开始小时表示隔天结束 |
 
-时间戳用 Unix 秒，时区用 IANA 名称。文字用 `{名字}` 插入格式化值，原样保留未匹配的花括号内容。数字位置可用 `{bind:"work"}` 读取数字，也可用 `{bind:"work",map:[0,210]}` 将 0 至 1 映射到给定区间。颜色可用 `{bind:"day",pick:["#2E64B5","#FFC43D"]}`，数值达 0.5 时使用第二项。比如在 `rect` 的宽度绑定进度时，岛仔可以按显示像素精度更新，而 `now:"HH:mm"` 到下一分钟才更新。
+时间戳用 Unix 秒，时区用 IANA 名称。文字用 `{名字}` 插入格式化值，原样保留未匹配的花括号内容。数字位置可用 `{bind:"work"}` 读取数字，也可用 `{bind:"work",map:[0,210]}` 将 0 至 1 映射到给定区间。颜色可用 `{bind:"day",pick:["#2E64B5","#FFC43D"]}`，数值达 0.5 时使用第二项。比如在 `rect` 的宽度绑定进度时，Island可以按显示像素精度更新，而 `now:"HH:mm"` 到下一分钟才更新。
 
 ##### 动画与操作
 
@@ -341,7 +341,7 @@ function refresh() {
 
 用户可以停用插件一段时间再回来。宿主根据插件 ID 分开保存设置和私有数据，每次成功调用只替换本插件的数据。保留数据卸载后，从原清单位置重装开发包，或从原测试集市目录重装同 ID 试用包，可以找回原值。
 
-本地版把安装快照放在配置目录的 local-plugins。正式版拟把只读程序放在 `%APPDATA%\Daozai\plugins\<ID>\<版本>`，用户内容放在同级 plugin-data 的对应 ID 目录。升级时在副本上按 dataVersion 转换旧数据，成功才切换，失败继续用旧包和旧数据。在模块设置页导出的文件包含用户内容和数据版本，密钥和文件授权留在本机。卸载撤销授权、删除凭据，选择保留的用户内容由通过身份核对的同一插件认领。
+本地版把安装快照放在配置目录的 local-plugins。正式版拟把只读程序放在 `%APPDATA%\Island\plugins\<ID>\<版本>`，用户内容放在同级 plugin-data 的对应 ID 目录。升级时在副本上按 dataVersion 转换旧数据，成功才切换，失败继续用旧包和旧数据。在模块设置页导出的文件包含用户内容和数据版本，密钥和文件授权留在本机。卸载撤销授权、删除凭据，选择保留的用户内容由通过身份核对的同一插件认领。
 
 ## 7. 插件多久刷新一次
 
@@ -355,7 +355,7 @@ QuickJS 每次计算限时 30 毫秒，脚本可分配的内存上限为 4 MiB�
 
 从[示例目录](../../spike/examples/payday)开始，复制清单、入口和封面。清单中的 `entry` 指向包内入口。ID 使用小写作者名与插件名，以点分隔，最长 64 个字符。
 
-version 是插件版本，api 是需要的接口主版本，dataVersion 是存储格式版本。`api` 高于宿主支持的版本时，安装会提示「需要更新岛仔」。owner 决定设置归属，capabilities 列出使用的能力，permissions 列出授权事项。字段类型和可选值见[清单格式检查表](sdk-v1.schema.json)。该表也描述设计中的能力，本地试用目前接受的组合见[本地安装说明](local-install.md)。
+version 是插件版本，api 是需要的接口主版本，dataVersion 是存储格式版本。`api` 高于宿主支持的版本时，安装会提示「需要更新Island」。owner 决定设置归属，capabilities 列出使用的能力，permissions 列出授权事项。字段类型和可选值见[清单格式检查表](sdk-v1.schema.json)。该表也描述设计中的能力，本地试用目前接受的组合见[本地安装说明](local-install.md)。
 
 每个插件都必须提交一张封面。清单必须声明 `"cover": "cover.png"`，图片放在包根目录，使用有效 PNG，最大 256 KiB，最大 1920×1080。界面以 16:9 居中裁切，建议作者直接使用 16:9 并将主体放在画面中间。缺失或无效的封面会阻止试装、打包、提交和更新。旧版已装插件继续运行，原来缺图的条目显示占位，升级后显示新包的封面。
 
@@ -392,11 +392,11 @@ version 是插件版本，api 是需要的接口主版本，dataVersion 是存�
 
 材质包包含 `plugin.json`、`cover.png`、一个大小不超过 64 KiB 的 `.wgsl` 入口，以及可选的文本说明文件。默认值必须是范围内的有限数字，步长为正且不大于范围宽度。`unit` 最多 4 个字符，仅显示在滑块数值后。`precision` 为 0 至 3 的整数，省略时按 `step` 的小数位数显示。显示格式不改变参数值。控件弹簧刚度范围为 0.2 至 3，阻尼范围为 0.1 至 1。
 
-## 9. 岛仔升级后还能用吗
+## 9. Island升级后还能用吗
 
 建议先稳定插件身份、基本设置、卡片、存储的含义。新增可选字段要给旧包保留默认值。更改单位或删除已承诺的字段，就提升接口主版本，让新旧规则分别处理对应的包。
 
-独立模块、来源、实时歌词和事件先标实验。遇到不兼容的实验能力时，岛仔应列出受影响的部分。更新申请更多权限时先保留可用旧版，用户同意后切换。六个月的新旧主版本并行期建议只适用于已定稿的稳定接口，期限待确认。发版前用旧版官方插件的原包，在新宿主实测安装、数据恢复、旧设置、主题和启停。遇到不支持的版本时保留数据并提示升级。
+独立模块、来源、实时歌词和事件先标实验。遇到不兼容的实验能力时，Island应列出受影响的部分。更新申请更多权限时先保留可用旧版，用户同意后切换。六个月的新旧主版本并行期建议只适用于已定稿的稳定接口，期限待确认。发版前用旧版官方插件的原包，在新宿主实测安装、数据恢复、旧设置、主题和启停。遇到不支持的版本时保留数据并提示升级。
 
 ## 10. 作者如何试装和检查
 
@@ -408,9 +408,9 @@ version 是插件版本，api 是需要的接口主版本，dataVersion 是存�
 
 ### 本地开发调试（实验）
 
-在「设置 → 插件 → 开发者工具」打开「监视文件变化」。保存本地安装的插件清单、入口或包内数据文件后，岛仔会自动重载并保留私有数据。脚本可调用 `console.log(...values)`，每次最多 20 行、每行 200 字。开发者工具保留最近 100 行，日志只在本次运行期间可见。
+在「设置 → 插件 → 开发者工具」打开「监视文件变化」。保存本地安装的插件清单、入口或包内数据文件后，Island会自动重载并保留私有数据。脚本可调用 `console.log(...values)`，每次最多 20 行、每行 200 字。开发者工具保留最近 100 行，日志只在本次运行期间可见。
 
-运行 `daozai.exe --plugin-test plugin.json` 可试跑 JavaScript 插件的 `refresh`，查看返回值、运行耗时、报错位置及能力自检。追加 `--input mock.json` 传入可选的 `settings`、`storage`、`now`（Unix 毫秒）和 `sources`。只读 `input.source` 的插件可用 `{"sources":{"default":{"status":"ready","text":"模拟响应"}}}` 试跑。
+运行 `message-island.exe --plugin-test plugin.json` 可试跑 JavaScript 插件的 `refresh`，查看返回值、运行耗时、报错位置及能力自检。追加 `--input mock.json` 传入可选的 `settings`、`storage`、`now`（Unix 毫秒）和 `sources`。只读 `input.source` 的插件可用 `{"sources":{"default":{"status":"ready","text":"模拟响应"}}}` 试跑。
 
 先保留业务算法和测试，再把输入、展示结果和存储写成函数。喝水提醒原有设置限制为 5 至 180 分钟，可在清单的数字设置中声明范围，函数读取用户输入并返回展示内容。
 
@@ -425,7 +425,7 @@ function refresh({settings}) {
 
 可直接交给 AI 的提示词：
 
-> 阅读我的 PR、使用场景和岛仔 SDK。列出可复用的业务逻辑和已有测试。选择一个设置归属，把定时、按钮和事件写进清单。用 refresh、action 或 event 接收输入并返回结果。生成最小包和模拟数据，标清哪些能在当前宿主试装、哪些需要新接口。验证启停、重启和卸载恢复。保留原作者与素材许可。
+> 阅读我的 PR、使用场景和Island SDK。列出可复用的业务逻辑和已有测试。选择一个设置归属，把定时、按钮和事件写进清单。用 refresh、action 或 event 接收输入并返回结果。生成最小包和模拟数据，标清哪些能在当前宿主试装、哪些需要新接口。验证启停、重启和卸载恢复。保留原作者与素材许可。
 
 #### 状态页交互、专注事件和提醒
 
@@ -435,11 +435,11 @@ function refresh({settings}) {
 
 列表最多 8 项，每项可写 `{label, detail?, state?, action?, open?, copy?}`。`action` 是脚本动作 ID。按钮与列表项都可加 `open` 或 `copy`，二者只能选一个。`open` 打开清单 `network.hosts` 声明的 HTTPS 域名下的链接。`copy` 将最多 2000 字写入剪贴板。当行既有脚本动作又有复制内容时，点正文由脚本处理，点行尾「复制」由宿主处理。
 
-点击脚本动作时，岛仔在后台调用 `action({settings, storage, today, source?, action:{id, form}})`。`form` 是字段键到文字的映射，未填的字段为 `""`。按钮和列表项只在生成它们的状态结果仍有效时接受点击。状态刷新、停用插件、修改设置或关闭所属模块都会使对应的旧结果失效。
+点击脚本动作时，Island在后台调用 `action({settings, storage, today, source?, action:{id, form}})`。`form` 是字段键到文字的映射，未填的字段为 `""`。按钮和列表项只在生成它们的状态结果仍有效时接受点击。状态刷新、停用插件、修改设置或关闭所属模块都会使对应的旧结果失效。
 
 清单声明 `event` 并列出 `"events":["focus.finished"]`。每次专注计时结束只投递一次。同一个插件已有调用时，事件按顺序等候。插件停用或所属模块关闭期间的事件不补发。全局函数 `event(input)` 收到与 `refresh` 相同的通用字段及 `event:{name, id, at, minutes}`，`at` 为 Unix 秒，`minutes` 为本轮配置的专注分钟数。
 
-声明 `notice` 后，三个脚本入口都可返回 `notice:{id, title, body?}`。ID 为 1 至 128 字，标题为 1 至 40 字，正文可省略，最多 120 字。每个插件同一 ID 只显示一次，60 秒内最多发出一条。提醒显示和正文遵循岛仔现有的通知开关。
+声明 `notice` 后，三个脚本入口都可返回 `notice:{id, title, body?}`。ID 为 1 至 128 字，标题为 1 至 40 字，正文可省略，最多 120 字。每个插件同一 ID 只显示一次，60 秒内最多发出一条。提醒显示和正文遵循Island现有的通知开关。
 
 三个脚本入口共用每插件单次运行的限制，以及 30 ms、4 MiB 和 16 KiB 的展示输出上限，包含画布时展示上限为 64 KiB。可在本地试装[便签样例](../../spike/examples/sticky-notes/plugin.json)。
 
@@ -461,15 +461,15 @@ function refresh({settings}) {
 
 ### 正式分发
 
-作者向独立插件仓库提交 PR，提供源码、清单、封面、版本、变更、测试方法、许可和镜像分发授权。维护者审核并合并后打包。发布先把不可覆盖的 ZIP 上传到 Gitee，确认匿名下载的文件一致，再更新同目录的 `catalog.json`。[插件投稿仓](https://github.com/Renly1994/xiaotang-daozai-plugins)
+作者向独立插件仓库提交 PR，提供源码、清单、封面、版本、变更、测试方法、许可和镜像分发授权。维护者审核并合并后打包。发布先把不可覆盖的 ZIP 上传到 Gitee，确认匿名下载的文件一致，再更新同目录的 `catalog.json`。[插件投稿仓](https://github.com/GCUSMS-AI-ProJect/Island)
 
-用户打开「设置 → 插件 → 集市」时，岛仔优先显示本机保存的目录和统计，缺少缓存时自动加载一次。切换标签和关闭详情直接使用当前数据。点击「刷新目录」可重新检查 Gitee 目录和统计。断网或刷新失败时继续显示上次有效数据。安装前核对文件大小和 SHA-256，升级验证通过后才换包，保留已有数据和启用选择。验收版读取 `preview`，发布版读取 `stable`。[Gitee 下载镜像](https://gitee.com/xiaotangtoken/xiaotang-daozai-plugins)
+Island 配置在线目录后，用户打开「设置 → 插件 → 集市」时，Island优先显示本机保存的目录和统计，缺少缓存时自动加载一次。切换标签和关闭详情直接使用当前数据。点击「刷新目录」可重新检查 Gitee 目录和统计。断网或刷新失败时继续显示上次有效数据。安装前核对文件大小和 SHA-256，升级验证通过后才换包，保留已有数据和启用选择。验收版读取 `preview`，发布版读取 `stable`。
 
 发布者签名仍待实现。
 
 ### 详情、收藏与统计
 
-集市索引可以为每项附上 `presentation`，由集市维护者填写。插件简介用 `description`，更新日期用 `updated_on`（`YYYY-MM-DD`），维护者账号用 `maintainer`。官方发布填 `official`，验收样例填 `sample`。官方插件显示「官方」，旧版官方清单的作者「岛仔」显示为「小唐」。头像可用同目录的 `avatar-*.png`，在 `author_avatar` 中填写文件名。先发布头像文件，再更新索引。缺头像时显示作者名称首字。
+集市索引可以为每项附上 `presentation`，由集市维护者填写。插件简介用 `description`，更新日期用 `updated_on`（`YYYY-MM-DD`），维护者账号用 `maintainer`。官方发布填 `official`，验收样例填 `sample`。官方插件显示「官方」，头像可用同目录的 `avatar-*.png`，在 `author_avatar` 中填写文件名。先发布头像文件，再更新索引。缺头像时显示作者名称首字。
 
 用户可从集市或详情收藏插件，在集市的「收藏」筛选里查看和取消。本机收藏按插件 ID 保存，后续版本和插件启停沿用同一收藏。历史安装条目如果没有封面，管理页显示占位，启停、设置和卸载仍可用。
 
@@ -477,11 +477,11 @@ function refresh({settings}) {
 
 ### 插件反馈
 
-从详情或「已安装」的「···」打开「插件反馈」。普通问题和建议会在独立插件仓打开 GitHub 草稿，预填插件 ID、插件版本和岛仔版本，用户补充信息后自行提交。安装或更新异常由岛仔维护者跟进。没有 GitHub 账号时可复制反馈信息转交。安全或隐私问题选择「复制并打开私密报告」，登录 GitHub 后粘贴插件信息，补充并提交给有权限的维护者。[GitHub 私密报告](https://github.com/Renly1994/xiaotang-daozai-plugins/security/advisories/new)
+从详情或「已安装」的「···」打开「插件反馈」。普通问题和建议会在独立插件仓打开 GitHub 草稿，预填插件 ID、插件版本和Island版本，用户补充信息后自行提交。安装或更新异常由Island维护者跟进。没有 GitHub 账号时可复制反馈信息转交。安全或隐私问题选择「复制并打开私密报告」，登录 GitHub 后粘贴插件信息，补充并提交给有权限的维护者。[GitHub 私密报告](https://github.com/GCUSMS-AI-ProJect/Island/security/advisories/new)
 
 插件上架时，仓库维护者在 `.github/plugin-maintainers.json` 登记作者或接手维护的 GitHub 账号。普通问题单提交后，仓库按插件 ID 自动提及对应账号。作者修复时提高版本号并提交关联原问题的 PR。维护者审核、发布和同步镜像后，在原问题下告知可用版本。
 
-## 13. 需要小唐决定的事
+## 13. 需要维护者决定的事
 
 这三项决定的是正式对外承诺，当前开发包按本文的全新调用方式运行。
 
@@ -489,7 +489,7 @@ function refresh({settings}) {
 | --- | --- |
 | 函数如何运行 | 每次全新运行，或为每个插件长期保留环境。建议前者，恢复只依赖输入和已保存数据，首版文档与样例统一采用 |
 | 怎样读取用户指定的本机软件状态 | 监控可导出文件供用户选择，也可提供固定的回环 GET 接口。拓竹等接入端需说明依赖和接口地址，端口更改后由用户重新授权 |
-| 旧额度命令如何退出 | 直接废弃，或为已有用户限期提供迁移期。建议停止接受新命令包，已有作者迁往受控来源接口。兼容期长度由小唐决定 |
+| 旧额度命令如何退出 | 直接废弃，或为已有用户限期提供迁移期。建议停止接受新命令包，已有作者迁往受控来源接口。兼容期长度由维护者决定 |
 
 生产阶段还需确认稳定接口的支持期限、并发与空间上限、独立进程、卸载默认选择、换维护者时的数据认领及市场签名密钥管理。
 
@@ -503,7 +503,7 @@ function refresh({settings}) {
 
 读清单或查看错误提示时，可以在这里对照字段的含义。
 
-- **宿主**指安装和运行插件的岛仔。**SDK** 是作者接入岛仔所用的约定、样例和工具。
+- **宿主**指安装和运行插件的Island。**SDK** 是作者接入Island所用的约定、样例和工具。
 - **纯函数**指只用输入算出结果的函数。两次调用之间要保存的内容放在 `storage`。
 - **QuickJS** 是宿主内运行 JavaScript 的程序。**KiB / MiB** 是容量单位，1 KiB 等于 1024 字节，1 MiB 等于 1024 KiB。
 - **清单**是作者提交的 plugin.json。**ID** 是插件的固定名称。

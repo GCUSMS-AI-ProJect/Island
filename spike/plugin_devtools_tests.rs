@@ -11,7 +11,7 @@ impl Fixture {
             .duration_since(SystemTime::UNIX_EPOCH)?
             .as_nanos();
         let root =
-            std::env::temp_dir().join(format!("daozai-devtools-{}-{suffix}", std::process::id()));
+            std::env::temp_dir().join(format!("island-devtools-{}-{suffix}", std::process::id()));
         fs::create_dir(&root)?;
         let fixture = Self(root);
         fs::write(

@@ -1,6 +1,6 @@
 # 第 3 步：状态页组件、实时组件与主题令牌
 
-本步扩充状态页组件，并加入由岛仔逐帧计算的实时组件、敏感值隐藏和受控的主题令牌。分支为 `feat/plugin-status-components`，共同规则见 [README](README.md)。
+本步扩充状态页组件，并加入由Island逐帧计算的实时组件、敏感值隐藏和受控的主题令牌。分支为 `feat/plugin-status-components`，共同规则见 [README](README.md)。
 
 ## 先读
 
@@ -24,7 +24,7 @@
 
 ### 实时组件
 
-实时组件由岛仔在本地逐帧计算，脚本不用每秒运行。脚本只返回下面的参数，宿主按当前时间算出要显示的值。插件停用或页面不可见时停止重绘。
+实时组件由Island在本地逐帧计算，脚本不用每秒运行。脚本只返回下面的参数，宿主按当前时间算出要显示的值。插件停用或页面不可见时停止重绘。
 
 - **`counter`**：跳动的数字。参数为 `{start_value, per_second, start_at, until?, decimals(0–4), prefix?, suffix?}`。显示值为 `start_value + per_second × (now − start_at)`，超过 `until` 后停在终值。实时工资就用它。
 - **`clock`**：某个时区的当前时间。参数为 `{label, utc_offset_minutes, format:"HH:mm" | "HH:mm:ss"}`。时区偏移由第 5 步的宿主时区换算提供，脚本也可以自己算。世界时钟用它。

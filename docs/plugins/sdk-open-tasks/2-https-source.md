@@ -1,6 +1,6 @@
 # 第 2 步：联网取数与凭据
 
-开放受控联网，一个插件最多可以有 3 个来源。密钥由岛仔托管，刷新间隔允许用户调整，集市加版本撤回标记。分支为 `feat/plugin-https-source`，共同规则见 [README](README.md)。
+开放受控联网，一个插件最多可以有 3 个来源。密钥由Island托管，刷新间隔允许用户调整，集市加版本撤回标记。分支为 `feat/plugin-https-source`，共同规则见 [README](README.md)。
 
 ## 先读
 
