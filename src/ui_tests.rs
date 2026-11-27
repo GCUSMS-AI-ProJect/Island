@@ -1597,6 +1597,41 @@ fn island_drag_header(h:&mut H,bounds:crate::display_layout::Bounds,ppp:f32)->Po
     }).expect("展开后的日期应可见")
 }
 
+/// 左、右、底部停靠时，面板靠屏幕边缘的那条边也能拖动；顶部停靠沿用顶栏把手，不另加。
+#[test]
+fn island_position_drag_starts_from_the_screen_edge_side_of_the_panel(){
+    use crate::model::{Dock,Settings};
+    let _g=ENV_LOCK.lock().unwrap_or_else(|e|e.into_inner());
+    let bounds=crate::display_layout::Bounds{left:0,top:0,right:1920,bottom:1080};
+    let grip=|h:&H|h.ctx.read_response(egui::Id::new(("card-drag",true,"island-position-edge"))).map(|r|r.rect);
+    for dock in Dock::ALL {
+        let mut h=H::new();h.app.settings.dock=dock;h.app.settings.island_offset=-40;h.app.settings.save();
+        h.app.set_page_visible(1,true);h.app.show_page(1);
+        let mut screen=Rect::NOTHING;
+        for _ in 0..90{screen=island_drag_frame(&mut h,bounds,1.0,None,None);}
+        assert!(h.app.open,"{dock:?}：应已展开");
+        if dock==Dock::Top {assert!(grip(&h).is_none(),"顶部停靠不加边缘把手");continue;}
+        let rect=grip(&h).unwrap_or_else(||panic!("{dock:?}：贴边一侧应有拖动把手"));
+        let win=Rect::from_min_size(Pos2::ZERO,if dock.is_side(){Vec2::new(crate::side_dock::SIDE_W,crate::side_dock::SIDE_H)}else{Vec2::new(WIN_W,WIN_H)});
+        let panel=h.app.island_rect(win,h.app.w.pos,h.app.h.pos);
+        match dock {
+            Dock::Left=>assert!(rect.left()<=panel.left()+1.0 && rect.width()<20.0,"把手应贴着面板左边：{rect:?} / {panel:?}"),
+            Dock::Right=>assert!(rect.right()>=panel.right()-1.0 && rect.width()<20.0,"把手应贴着面板右边：{rect:?} / {panel:?}"),
+            _=>assert!(rect.bottom()>=panel.bottom()-1.0 && rect.height()<20.0,"把手应贴着面板底边：{rect:?} / {panel:?}"),
+        }
+        let start=rect.center()-screen.min.to_vec2();
+        island_drag_frame(&mut h,bounds,1.0,Some(start),Some(true));
+        let end=start+if dock.is_side(){Vec2::new(0.0,90.0)}else{Vec2::new(90.0,0.0)};
+        for _ in 0..5{island_drag_frame(&mut h,bounds,1.0,Some(end),None);}
+        assert!(h.app.dragging_position(),"{dock:?}：按住边缘拖动应拿起岛体");
+        assert!(h.app.settings.island_offset>-40,"{dock:?}：拖动应改变位置");
+        island_drag_frame(&mut h,bounds,1.0,Some(end),Some(false));
+        assert!(!h.app.dragging_position());
+        let saved=Settings::load();
+        assert_eq!((saved.dock,saved.island_offset),(dock,h.app.settings.island_offset),"{dock:?}：松手后保存");
+    }
+}
+
 #[test]
 fn bottom_dock_hover_opens_upward_with_stable_edge_and_visible_header() {
     let _g=ENV_LOCK.lock().unwrap_or_else(|e|e.into_inner());

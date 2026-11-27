@@ -3864,7 +3864,7 @@ impl App {
     /// 常驻内容：顶部停靠走共享元素过渡（药丸里的电池、时钟飞到顶栏）；
     /// 左右停靠时竖排内容随展开淡出，顶栏随面板内容淡入。
     fn resident_header(&mut self, base: &Card, panel: Rect, cx: f32, p: f32, reveal: f32, env: &Env, resident_day: Option<&ResidentDay>) {
-        if !self.side() {self.shared_header(base,cx,p,reveal,env,resident_day);return;}
+        if !self.side() {self.shared_header(base,cx,p,reveal,env,resident_day);self.edge_grip(base,panel,reveal,env);return;}
         let bar_alpha=1.0-smoothstep(0.0,0.3,p);
         let minimal=self.effective_minimal()&&self.notification_bell().is_none();
         if bar_alpha>0.004 && !minimal {
@@ -3873,6 +3873,46 @@ impl App {
             self.side_bar(&c,panel.width(),panel.height(),env,resident_day);
         }
         if reveal>0.004 {self.shared_header(&base.faded(reveal),base.origin.x+PW/2.0,1.0,reveal,env,None);}
+        self.edge_grip(base,panel,reveal,env);
+    }
+
+    /// 贴边一侧的拖动把手：左 / 右 / 底部停靠时，面板靠屏幕边缘的那条边也能按住拖动，
+    /// 不必再移到面板顶部。行为与顶栏把手一致：一移动就拿起，原地按住片刻也会拿起。
+    /// 面板里的按钮后绘制、优先命中，把手只占边缘的留白。
+    fn edge_grip(&mut self, base: &Card, panel: Rect, reveal: f32, env: &Env) {
+        let dock=self.dock();
+        if dock==model::Dock::Top || !self.open || reveal<=0.95 || self.is_editing() || self.drag_hot {return;}
+        let Some(screen)=env.screen else {return;};
+        let c=base.shifted((panel.min.x-base.origin.x)/base.s,(panel.min.y-base.origin.y)/base.s);
+        let (w,h)=(panel.width()/base.s,panel.height()/base.s);
+        const THICK:f32=14.0;
+        let (x,y,gw,gh,vertical)=match dock {
+            model::Dock::Left=>(0.0,16.0,THICK,h-32.0,true),
+            model::Dock::Right=>(w-THICK,16.0,THICK,h-32.0,true),
+            _=>(36.0,h-THICK,w-72.0,THICK,false),
+        };
+        if gw<=0.0 || gh<=0.0 {return;}
+        let response=c.hit_drag(x,y,gw,gh,"island-position-edge").on_hover_text("按住拖动位置");
+        let (hover,press)=c.hover_t(&response);
+        // 平时一条很淡的短线提示这里能拖；悬停加亮变长，按下更亮。
+        let grip_in=hover.max(press).max(0.35);
+        let len=lerp(14.0,22.0,press.max(hover*0.6))*lerp(0.6,1.0,grip_in);
+        let alpha=Color32::from_white_alpha((grip_in*55.0+press*60.0) as u8);
+        if hover>0.003 || press>0.003 {
+            c.fill(x+1.0,y,gw-2.0,gh,6.0,Color32::from_white_alpha(((hover*6.0)+press*10.0) as u8));
+        }
+        let thick=2.6;
+        if vertical {
+            let gx=if dock==model::Dock::Left {x+5.0} else {x+gw-5.0-thick};
+            c.fill(gx,y+gh/2.0-len/2.0,thick,len,thick,alpha);
+        } else {
+            c.fill(x+gw/2.0-len/2.0,y+gh-6.0-thick,len,thick,thick,alpha);
+        }
+        let held=response.is_pointer_button_down_on() && c.ui.input(|i|i.pointer.primary_down() && i.pointer.press_start_time().is_some_and(|at|i.time-at>=LIFT_HOLD));
+        if response.is_pointer_button_down_on() {c.ui.ctx().request_repaint();}
+        if response.drag_started_by(egui::PointerButton::Primary) || held {
+            if let Some(start)=c.ui.input(|i|i.pointer.press_origin()) {self.start_position_drag(start,screen);}
+        }
     }
 
     fn update_pet(&mut self, env: &Env, cx: f32, top:f32) {
