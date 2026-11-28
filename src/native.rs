@@ -716,7 +716,7 @@ impl Window {
     /// 使用目标屏幕的物理坐标定位，并在缩放、岛体大小、水平位置或屏幕连接变化后重新校正。
     /// `scale` 是主窗口的实际像素比（系统 DPI × 岛体大小），画布按它同步调整物理尺寸。
     /// `shift` 是 OLED 像素偏移的位移（物理像素），按当前停靠画面的屏幕余量收窄后叠加。
-    pub fn place_on_display(&mut self, scale:f32, bounds:crate::display_layout::Bounds, offset:f32, dock:crate::model::Dock, shift:(i32,i32), horizontal_width:f32)->bool {
+    pub fn place_on_display(&mut self, scale:f32, bounds:crate::display_layout::Bounds, offset:f32, depth:f32, dock:crate::model::Dock, shift:(i32,i32), horizontal_width:f32)->bool {
         unsafe {
             let horizontal_width=horizontal_width.max(crate::app::WIN_W);
             // 顶部：水平居中 + 水平偏移；左右：贴边 + 竖直偏移，画布换成竖向的大小。
@@ -731,6 +731,9 @@ impl Window {
             let (back,forth)=crate::display_layout::shift_slack(bounds,scale,half,offset,dock);
             let (dx,dy)=(shift.0.clamp(-back,forth),shift.1.clamp(-back,forth));
             let (x,y)=if dock.is_side() {(x,y+dy)} else {(x+dx,y)};
+            // 拖动悬浮：整块画布离开停靠边，往屏幕内侧移动。
+            let d=if depth.is_finite() {(depth.max(0.0)*scale).round() as i32}else{0};
+            let (x,y)=match dock {crate::model::Dock::Top=>(x,y+d),crate::model::Dock::Bottom=>(x,y-d),crate::model::Dock::Left=>(x+d,y),crate::model::Dock::Right=>(x-d,y)};
             let (canvas_w,canvas_h)=if dock.is_side() {(crate::side_dock::SIDE_W,crate::side_dock::SIDE_H)}
                 else {(horizontal_width+crate::app::CANVAS_W-crate::app::WIN_W,crate::app::WIN_H)};
             let (w,h)=((canvas_w*scale).round() as i32,(canvas_h*scale).round() as i32);

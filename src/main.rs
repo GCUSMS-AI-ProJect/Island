@@ -654,7 +654,7 @@ impl eframe::App for Shell {
         #[cfg(windows)]
         if self.native.as_ref().is_some_and(|w|w.take_display_change()) {self.placement_at=PollClock::default();}
         #[cfg(windows)]
-        let placement_key=(self.app.settings.display_id.clone(),(offset*10000.0).round() as i32,self.app.settings.dock,self.app.settings.avoids_top_bar(),shift);
+        let placement_key=(self.app.settings.display_id.clone(),(offset*10000.0).round() as i32+((self.app.placement_depth()*16.0).round() as i32)*100000,self.app.settings.dock,self.app.settings.avoids_top_bar(),shift);
         #[cfg(windows)]
         let refresh=self.placement_at.ready(Duration::from_secs(1));
         #[cfg(windows)]
@@ -676,7 +676,7 @@ impl eframe::App for Shell {
             let moving_display=self.placed && (self.app.dragging_position() || self.placement_key.0!=placement_key.0);
             self.placement_key=placement_key;
             let scale=display.filter(|_|moving_display).map_or(self.placement_scale,|d|d.scale(self.app.settings.island_scale()*ctx.zoom_factor()));
-            if bounds.is_some_and(|b|self.native.as_mut().is_some_and(|w|w.place_on_display(scale,b,offset,self.app.settings.dock,shift,self.horizontal_width))) {
+            if bounds.is_some_and(|b|self.native.as_mut().is_some_and(|w|w.place_on_display(scale,b,offset,self.app.placement_depth(),self.app.settings.dock,shift,self.horizontal_width))) {
                 self.placed_bounds=bounds;
                 if !self.placed {
                     diagnostics::startup("目标屏幕物理坐标定位完成，已请求显示");
@@ -948,7 +948,7 @@ impl eframe::App for Shell {
             if shift!=self.oled_shift {
                 self.oled_shift=shift;
                 let display=island::display_layout::selected(&self.app.displays,&self.app.settings.display_id);
-                if display.is_some_and(|d|self.native.as_mut().is_some_and(|w|w.place_on_display(ctx.pixels_per_point(),d.dock_bounds(self.app.settings.dock,self.app.settings.avoids_top_bar()),self.app.placement_offset(),self.app.settings.dock,shift,self.horizontal_width))) {
+                if display.is_some_and(|d|self.native.as_mut().is_some_and(|w|w.place_on_display(ctx.pixels_per_point(),d.dock_bounds(self.app.settings.dock,self.app.settings.avoids_top_bar()),self.app.placement_offset(),self.app.placement_depth(),self.app.settings.dock,shift,self.horizontal_width))) {
                     self.placement_key.4=shift;
                 }
                 ctx.request_repaint();
@@ -1012,7 +1012,7 @@ impl eframe::App for Shell {
                 ctx.request_repaint_after(wait);
             }
             let pill_hover=(!self.hidden && out.resident_clip.is_some()
-                && self.app.settings.island_shape==island::model::IslandShape::Pill).then_some(out.hit);
+                && self.app.pill_shape()).then_some(out.hit);
             native.watch_collapsed_pill_edge(pill_hover,ppp,self.app.settings.dock);
             native_cost=native_start.elapsed();
             _frame.root_window_offset=native.paint_offset();

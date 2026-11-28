@@ -1677,6 +1677,47 @@ fn island_position_drag_starts_from_the_screen_edge_side_of_the_panel(){
     }
 }
 
+/// 拖动时岛跟着光标离开边缘、悬浮成胶囊；光标靠近哪条边就预备落到哪条边，松手后贴回去并保存。
+#[test]
+fn island_position_drag_floats_with_the_cursor_and_snaps_to_the_nearest_edge_on_release(){
+    use crate::model::{Dock,Settings};
+    let _g=ENV_LOCK.lock().unwrap_or_else(|e|e.into_inner());
+    let bounds=crate::display_layout::Bounds{left:0,top:0,right:1920,bottom:1080};
+    let mut h=H::new();h.app.settings.dock=Dock::Left;h.app.settings.save();
+    h.app.set_page_visible(1,true);h.app.show_page(1);
+    let mut screen=Rect::NOTHING;
+    for _ in 0..90{screen=island_drag_frame(&mut h,bounds,1.0,None,None);}
+    let rect=h.ctx.read_response(egui::Id::new(("card-drag",true,"island-position-edge"))).map(|r|r.rect).expect("左侧停靠应有边缘把手");
+    let start=rect.center()-screen.min.to_vec2();
+    island_drag_frame(&mut h,bounds,1.0,Some(start),Some(true));
+    let mut drag_to=|h:&mut H,p:Pos2|{for _ in 0..40{island_drag_frame(h,bounds,1.0,Some(p),None);}};
+    // 往外轻轻拉一点：还粘在边上，不变形。
+    drag_to(&mut h,start+Vec2::new(12.0,0.0));
+    assert!(h.app.dragging_position());
+    assert!(h.app.placement_depth()<6.0 && !h.app.pill_shape(),"小幅外拉应先粘在边上：{}",h.app.placement_depth());
+    // 拖到屏幕里：跟着光标悬浮，变成胶囊。
+    drag_to(&mut h,Pos2::new(420.0,540.0));
+    assert_eq!(h.app.settings.dock,Dock::Left);
+    let depth=h.app.placement_depth();
+    assert!((depth-(420.0-start.x)).abs()<24.0,"悬浮距离应跟手：{depth} / 光标 420，按下 {}",start.x);
+    assert!(h.app.pill_shape(),"悬浮时画成胶囊");
+    // 过了中间靠近右边：换到右边预备落位，仍跟手。
+    drag_to(&mut h,Pos2::new(1700.0,540.0));
+    assert_eq!(h.app.settings.dock,Dock::Right);
+    assert!(h.app.placement_depth()>150.0,"换边后仍悬浮在光标处：{}",h.app.placement_depth());
+    // 靠近底边：换到底部。
+    drag_to(&mut h,Pos2::new(960.0,1000.0));
+    assert_eq!(h.app.settings.dock,Dock::Bottom);
+    island_drag_frame(&mut h,bounds,1.0,Some(Pos2::new(960.0,1000.0)),Some(false));
+    for _ in 0..30{island_drag_frame(&mut h,bounds,1.0,None,None);}
+    assert!(!h.app.dragging_position());
+    assert_eq!(h.app.placement_depth(),0.0,"松手后贴回边上");
+    assert!(!h.app.pill_shape(),"贴回边上恢复刘海外形");
+    let saved=Settings::load();
+    assert_eq!(saved.dock,Dock::Bottom,"松手后保存最近的边");
+    assert!(saved.island_offset.abs()<=crate::model::ISLAND_OFFSET_MAX/8,"落在光标对应的位置（屏幕中间附近）：{}",saved.island_offset);
+}
+
 #[test]
 fn bottom_dock_hover_opens_upward_with_stable_edge_and_visible_header() {
     let _g=ENV_LOCK.lock().unwrap_or_else(|e|e.into_inner());

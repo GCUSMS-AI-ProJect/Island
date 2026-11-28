@@ -6,7 +6,7 @@
 //! 吉祥物和岛上歌词是横向内容，侧边停靠时不显示。
 
 use crate::app::{App, Env, Phase, BAR_H_MIN, BAR_W_MIN, PILL_GAP, PW};
-use crate::model::{Dock, IslandShape, ResidentDate};
+use crate::model::{Dock, ResidentDate};
 use crate::paint::{self, Card, H};
 use crate::resident_date::ResidentDay;
 use crate::theme::{self, size, W};
@@ -77,7 +77,7 @@ impl App {
     }
 
     fn side_gap(&self) -> f32 {
-        if self.settings.island_shape == IslandShape::Pill { PILL_GAP } else { 0.0 }
+        if self.pill_shape() { PILL_GAP } else { 0.0 }
     }
 
     /// 宽 `w`、高 `h` 的岛体在画布 `win` 里的位置：上下停靠水平居中贴边，

@@ -105,6 +105,8 @@ const CLOSE: (f32, f32) = (620.0, 1.0);
 const SWELL_K: (f32, f32) = (420.0, 0.8);
 const PAGE_SLIDE: f32 = 32.0;
 const PAGE_TURN_DURATION: f32 = 0.34;
+/// 翻页时标题区的滑动距离（逻辑像素），与设置页翻页的 10px 一致。
+const PAGE_HEADER_SLIDE: f32 = 10.0;
 
 pub struct Options {
     /// 是否联网查歌词（录制/测试时关掉）。
@@ -744,6 +746,10 @@ struct PositionDrag {
     /// 本段拖动的起始偏移（未取整，换边后重置），单位与 `island_offset` 相同。
     offset: f32,
     original: (model::Dock, i32),
+    /// 按下时光标离停靠边的距离：悬浮时保持这段距离，岛不会跳到光标正下方。
+    grab_depth: Option<f32>,
+    /// 已经从边上挣脱，之后一直跟手。
+    free: bool,
 }
 
 // ---------- 拖动位置动效 ----------
@@ -759,6 +765,15 @@ const GLIDE_SETTLE: (f32, f32) = (380.0, 0.38);
 /// 移动越快沿运动方向拉得越长（最多 22%），厚度方向相应收窄。
 const STRETCH_MAX: f32 = 0.22;
 const STRETCH_SPEED: f32 = 1400.0;
+/// 自由拖动：岛离开停靠边跟着光标走，跟手略带拖尾、轻微冲过；松手后弹回最近的边，落地再轻弹一下。
+const FLOAT_FOLLOW: (f32, f32) = (380.0, 0.58);
+const FLOAT_SETTLE: (f32, f32) = (240.0, 0.46);
+/// 离开边缘超过这段距离（逻辑像素）就变成悬浮胶囊；回落到它以内恢复贴边外形。
+const FLOAT_SHAPE: f32 = 10.0;
+/// 沿边拖动时先「粘」在边上，往外拉过这段距离才挣脱、跟上光标。
+const FLOAT_BREAK: f32 = 24.0;
+/// 换边的滞回距离：离新边明显更近才换，屏幕中间不来回翻转。
+const FLOAT_SWITCH: f32 = 40.0;
 /// 吸附范围（`island_offset` 单位）：居中和拖动前的位置。
 const DRAG_MAGNET: f32 = 5.0;
 /// 吸住居中后要拖出更远才松开，停在中间时稳稳「咬住」，不会被手抖带走。
@@ -816,6 +831,8 @@ pub struct App {
     drag_glide: Option<anim::Spring>,
     /// 拿起程度 0..1（可略过冲）与速度拉伸量，只影响岛体外形，不影响展开进度。
     drag_lift: anim::Spring,
+    /// 悬浮离开停靠边的距离（逻辑像素，可略过冲），窗口按它往屏幕内侧移动。
+    drag_float: anim::Spring,
     seam_guide:f32,
     crossed_at:f64,
     drag_stretch: anim::Spring,
@@ -1067,6 +1084,7 @@ impl App {
             drag_glide: None,
             seam_guide:0.0, crossed_at:f64::NEG_INFINITY,
             drag_lift: anim::Spring::new(0.0, LIFT_K.0, LIFT_K.1),
+            drag_float: anim::Spring::new(0.0, FLOAT_FOLLOW.0, FLOAT_FOLLOW.1),
             drag_stretch: anim::Spring::new(0.0, 260.0, 0.6),
             center_locked: false,
             center_lock_at: -10.0,
@@ -1975,7 +1993,7 @@ impl App {
         crate::oled_shift::should_move(self.open, self.position_drag.is_some() || self.drag_glide.is_some(), self.is_editing())
             && self.hover_since.is_none() && !self.drag_hot
             && self.w.settled(PW) && self.h.settled(self.expanded_height())
-            && self.drag_lift.settled(1.0) && self.drag_stretch.settled(1.0)
+            && self.drag_lift.settled(1.0) && self.drag_stretch.settled(1.0) && self.drag_float.settled(1.0)
             && ctx.input(|i|!i.pointer.any_down() && !i.pointer.any_pressed() && i.raw.hovered_files.is_empty())
     }
 
@@ -2028,6 +2046,17 @@ impl App {
 
     fn page_slide_alpha(elapsed: f32) -> f32 {
         smoothstep(0.03, 0.28, elapsed)
+    }
+
+    /// 标题区跟着翻页轻轻滑动，和设置页的翻页一致：旧标题朝反方向让开，新标题从翻页方向滑入并减速停稳。
+    fn page_header_slide(&self, elapsed: f32, entering: bool) -> f32 {
+        if cfg!(test) {return 0.0;}
+        if entering {
+            let t=((elapsed-0.08)/0.26).clamp(0.0,1.0);
+            self.page_dir*PAGE_HEADER_SLIDE*(1.0-t).powi(3)
+        } else {
+            -self.page_dir*PAGE_HEADER_SLIDE*0.6*smoothstep(0.0,0.10,elapsed)
+        }
     }
 
     fn page_header_alpha(elapsed: f32) -> f32 {
@@ -2392,7 +2421,7 @@ impl App {
         self.update_island_lyric_layout(&ctx);
 
         // 胶囊皮肤悬浮在屏幕顶边下方。
-        let pill = self.settings.island_shape==model::IslandShape::Pill;
+        let pill = self.pill_shape();
         let top = win.top() + if pill { PILL_GAP } else { 0.0 };
         let bottom=self.dock()==model::Dock::Bottom;
         let orient=|r:Rect| if bottom {
@@ -2851,7 +2880,7 @@ impl App {
         let resident_moving=!self.resident.settled();
         let closing_tail=!self.open && (resident_moving || (!minimal_pill && pet_fading));
         let interactive_transition=closing_tail || (self.hold_slot>0.0 && self.hold_slot<1.0) || resizing || page_transition || scrolling || shelf_scrolling || water_view_transition;
-        let transitioning = interactive_transition || self.position_drag.is_some() || self.drag_glide.is_some() || !self.drag_lift.settled(1.0) || !self.drag_stretch.settled(1.0)
+        let transitioning = interactive_transition || self.position_drag.is_some() || self.drag_glide.is_some() || !self.drag_lift.settled(1.0) || !self.drag_stretch.settled(1.0) || !self.drag_float.settled(1.0)
             || self.center_guide>0.002 || self.center_lock_a>0.002 || self.t-self.center_lock_at<CENTER_SWEEP
             || self.page_e() < 0.7
             || self.dots.iter().any(|d| !d.settled(16.0))
@@ -2908,7 +2937,7 @@ impl App {
         }
         let geometry_transitioning = resizing
             || !self.notice_width.settled(1.0) || !self.resident.settled()
-            || !self.drag_lift.settled(1.0) || !self.drag_stretch.settled(1.0)
+            || !self.drag_lift.settled(1.0) || !self.drag_stretch.settled(1.0) || !self.drag_float.settled(1.0)
             || self.position_drag.is_some() || self.drag_glide.is_some() || self.drag_hot
             || self.hover_since.is_some() && !self.open || self.leave_since.is_some() || page_transition;
         FrameOut {
@@ -2939,7 +2968,7 @@ impl App {
     fn hit_rect(&self, cx: f32, top: f32, p: f32) -> Rect {
         let r=self.hit_rect_base(cx,top,p);
         // 胶囊离屏幕顶边有一段空隙：把光标推到屏幕最顶端也要能唤出岛。
-        if self.settings.island_shape==model::IslandShape::Pill {Rect::from_min_max(Pos2::new(r.left(),r.top()-PILL_GAP),r.max)} else {r}
+        if self.pill_shape() {Rect::from_min_max(Pos2::new(r.left(),r.top()-PILL_GAP),r.max)} else {r}
     }
 
     fn hit_rect_base(&self, cx: f32, top: f32, p: f32) -> Rect {
@@ -3277,7 +3306,7 @@ impl App {
     fn paint_body(&self,painter:&egui::Painter,rect:Rect,flare:f32,flare_h:f32,radius:f32,feather:f32){
         let skin=self.effective_skin();
         if skin==model::Skin::Fluid {
-            let pill=self.settings.island_shape==model::IslandShape::Pill;
+            let pill=self.pill_shape();
             let (map,frame)=shape::EdgeMap::of(rect,if pill {model::Dock::Top}else{self.dock()});
             let mut rows=shape::sections(frame,flare,flare_h,radius);
             if pill {
@@ -3297,7 +3326,7 @@ impl App {
             painter.add(egui::Shape::mesh(mesh));
             return;
         }
-        if self.settings.island_shape==model::IslandShape::Pill {
+        if self.pill_shape() {
             let radius=radius.min(rect.height().min(rect.width())*0.5);
             painter.rect_filled(rect,radius,self.glass_fill());
             if skin.is_glass() && rect.height()>=10.0 {
@@ -3337,7 +3366,7 @@ impl App {
     /// 拿起时沿岛体轮廓的一圈柔光：外圈宽而淡，内圈细而亮。
     fn paint_lift_halo(&self,painter:&egui::Painter,rect:Rect,flare:f32,flare_h:f32,radius:f32,amount:f32) {
         if rect.width()<10.0 || rect.height()<10.0 {return;}
-        let pill=self.settings.island_shape==model::IslandShape::Pill;
+        let pill=self.pill_shape();
         let dock=self.dock();
         for (grow,width,alpha) in [(2.0f32,4.0f32,22.0f32),(0.5,1.2,90.0)] {
             let stroke=egui::Stroke::new(width,Color32::from_white_alpha((alpha*amount) as u8));
@@ -3364,6 +3393,8 @@ impl App {
                 self.settings.display_id=drag.original_display;
                 (self.settings.dock,self.settings.island_offset)=drag.original;
                 self.drag_glide=None;
+                self.drag_float.tune(FLOAT_SETTLE.0,FLOAT_SETTLE.1);
+                self.drag_float.target=0.0;
                 self.drag_stretch.target=0.0;
                 self.hover_lock=true;
                 self.center_locked=false;
@@ -3399,17 +3430,23 @@ impl App {
             if let Some((cursor,size))=geometry {
                 let edges=[(model::Dock::Top,cursor.y.max(0.0)),(model::Dock::Left,cursor.x.max(0.0)),(model::Dock::Right,(size.x-cursor.x).max(0.0)),(model::Dock::Bottom,(size.y-bottom_inset-cursor.y).max(0.0))];
                 let &(nearest,distance)=edges.iter().min_by(|a,b|a.1.total_cmp(&b.1)).unwrap();
-                let current=edges.iter().find(|(dock,_)|*dock==self.dock()).unwrap().1;
-                // 靠近新边缘才换边；角落保留缓冲，防止横竖形态来回跳变。
-                let mut target=Some(nearest).filter(|dock|*dock!=self.dock() && distance<=64.0 && distance+24.0<current);
-                // 左右对侧：过了中线、明显更靠近另一侧就换过去，不必甩到屏幕尽头；中线附近留缓冲不来回跳。
-                if target.is_none() && self.side() {
-                    let (opposite,far)=if self.dock()==model::Dock::Left {(model::Dock::Right,edges[2].1)}else{(model::Dock::Left,edges[1].1)};
-                    if far+size.x*0.07<current {target=Some(opposite);}
-                }
+                let depth_of=|dock:model::Dock|edges.iter().find(|(d,_)|*d==dock).unwrap().1;
+                let current=depth_of(self.dock());
+                let grab=*drag.grab_depth.get_or_insert(current.min(48.0));
+                // 岛跟着光标走，松手时落到哪条边由光标最靠近的边决定；换边留滞回，屏幕中间不来回翻转。
+                let mut target=Some(nearest).filter(|dock|*dock!=self.dock() && distance+FLOAT_SWITCH<current);
                 if crossed {target=Some(seam.filter(|(depth,_)|depth.abs()<=64.0).map_or(nearest,|(_,dock)|dock));}
                 let switch=target.is_some();
                 if let Some(dock)=target {self.settings.dock=dock;}
+                // 离边距离：先粘在边上，拉出 FLOAT_BREAK 才挣脱，之后一直跟手。
+                let pull=(depth_of(self.dock())-grab).max(0.0);
+                if pull>=FLOAT_BREAK {drag.free=true;}
+                let reach=if self.side() {size.x}else{size.y-bottom_inset};
+                let thickness=if self.side() {self.base_size().0}else{self.base_size().1};
+                let depth=if drag.free {pull}else{pull*pull/(FLOAT_BREAK*4.0)}.min((reach-thickness-12.0).max(0.0));
+                self.drag_float.tune(FLOAT_FOLLOW.0,FLOAT_FOLLOW.1);
+                self.drag_float.target=depth;
+                if switch {self.drag_float.snap(depth);}
                 if let Some((depth,_))=seam.filter(|(_,dock)|*dock==self.dock()) {
                     seam_strength=(1.0-smoothstep(16.0,72.0,depth))*smoothstep(-16.0,0.0,depth);
                 }
@@ -3451,6 +3488,9 @@ impl App {
                     glide.tune(GLIDE_SETTLE.0,GLIDE_SETTLE.1);
                     glide.target=self.settings.island_offset as f32;
                 }
+                // 松手：弹回最近的边；离得越远回得越有劲，落地时再轻轻一弹。
+                self.drag_float.tune(FLOAT_SETTLE.0,FLOAT_SETTLE.1);
+                self.drag_float.target=0.0;
                 if self.settings.display_id!=drag.original_display || (self.dock(),self.settings.island_offset)!=drag.original {self.settings.save();}
             }else{
                 self.position_drag=Some(drag);
@@ -3460,6 +3500,7 @@ impl App {
         self.drag_lift.target=if self.position_drag.is_some() {1.0}else{0.0};
         self.drag_lift.step(dt);
         self.drag_stretch.step(dt);
+        self.step_drag_float(dt);
         if let Some(glide)=&mut self.drag_glide {
             glide.step(dt);
             if self.position_drag.is_none() && glide.settled(limit) {self.drag_glide=None;}
@@ -3486,7 +3527,7 @@ impl App {
         let dock=self.dock();
         let side=dock.is_side();
         let along=if side {Vec2::Y}else{Vec2::X};
-        let pill=self.settings.island_shape==model::IslandShape::Pill;
+        let pill=self.pill_shape();
         let outline=|grow:f32| if pill {round_rect_points(body.expand(grow),radius+grow)}
             else if dock!=model::Dock::Top {shape::outline_docked(body.expand(grow),dock,flare,flare_h,radius+grow)}
             else {shape::outline(body.expand(grow),flare,flare_h,radius+grow)};
@@ -3557,6 +3598,32 @@ impl App {
 
     pub fn dragging_position(&self)->bool {self.position_drag.is_some()}
 
+    /// 悬浮距离的弹簧：回到边上时像撞上软垫，反弹一下并压扁岛体。
+    fn step_drag_float(&mut self,dt:f32) {
+        let was=self.drag_float.pos;
+        self.drag_float.step(dt);
+        if self.drag_float.pos<0.0 {
+            let speed=-self.drag_float.vel;
+            self.drag_float.pos=0.0;
+            self.drag_float.vel=if self.position_drag.is_none() && speed>120.0 {speed*0.28}else{0.0};
+            if was>0.0 && speed>120.0 {
+                // 落地「啪」一下：岛体先压扁再弹回，力度随落地速度变化。
+                self.drag_lift.vel-=(speed/260.0).min(4.5);
+                self.drag_stretch.vel+=(speed/900.0).min(1.6);
+            }
+        }
+        if self.position_drag.is_none() && self.drag_float.pos<0.05 && self.drag_float.vel.abs()<0.5 {self.drag_float.snap(0.0);}
+        if cfg!(test) && self.position_drag.is_none() {self.drag_float.snap(0.0);}
+    }
+
+    /// 悬浮离开停靠边的距离（逻辑像素）：窗口按它往屏幕内侧移动。
+    pub fn placement_depth(&self)->f32 {self.drag_float.pos.max(0.0)}
+
+    /// 当前画出来的外形是否为胶囊：设置为胶囊，或拖动时正悬浮在半空。
+    pub fn pill_shape(&self)->bool {
+        self.settings.island_shape==model::IslandShape::Pill || self.drag_float.pos>FLOAT_SHAPE
+    }
+
     /// 拖动中和落位期间窗口使用的位置（-1 … 1，不取整）；其余时候就是保存的位置。
     pub fn placement_offset(&self)->f32 {
         let limit=model::ISLAND_OFFSET_MAX as f32;
@@ -3575,7 +3642,7 @@ impl App {
     fn start_position_drag(&mut self,start:Pos2,screen:Rect) {
         let offset=self.settings.island_offset;
         let original_monitor=crate::display_layout::selected(&self.displays,&self.settings.display_id).map(|d|d.id.clone());
-        self.position_drag=Some(PositionDrag{original_display:self.settings.display_id.clone(),original_monitor,start:start-screen.min,offset:offset as f32,original:(self.dock(),offset)});
+        self.position_drag=Some(PositionDrag{original_display:self.settings.display_id.clone(),original_monitor,start:start-screen.min,offset:offset as f32,original:(self.dock(),offset),grab_depth:None,free:false});
         let mut glide=anim::Spring::new(offset as f32,GLIDE_FOLLOW.0,GLIDE_FOLLOW.1);
         if let Some(g)=self.drag_glide {glide.pos=g.pos;glide.vel=g.vel;}
         self.drag_glide=Some(glide);
@@ -4018,7 +4085,8 @@ impl App {
             let new_a = Self::page_slide_alpha(e);
             if old_a > 0.0 && self.module_on(self.page_from) {
                 let oc = c.faded(old_a).ghost();
-                let old_header=c.faded(Self::page_header_alpha(self.page_from_elapsed)*(1.0-smoothstep(0.0,0.10,e))).ghost();
+                let old_header=c.faded(Self::page_header_alpha(self.page_from_elapsed)*(1.0-smoothstep(0.0,0.10,e))).ghost()
+                    .shifted(self.page_header_slide(e,false),0.0);
                 self.page_title(self.page_from, &old_header);
                 self.render_page(self.page_from, &oc.shifted(self.page_from_offset, 0.0), &old_header, env, &mut Vec::new());
             }
@@ -4027,6 +4095,7 @@ impl App {
             // 同一位置的标题先退后进，避免两个页面的汉字在中间帧叠成重影。
             let header=c.faded(Self::page_header_alpha(e));
             let header=if e<0.12 {header.ghost()}else{header};
+            let header=header.shifted(self.page_header_slide(e,true),0.0);
             self.page_title(self.page, &header);
             self.render_page(self.page, &nc.shifted(self.page_slide_offset(e), 0.0), &header, env, cmds);
         } else {
