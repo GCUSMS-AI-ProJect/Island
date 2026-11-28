@@ -144,3 +144,12 @@ lto = true
 codegen-units = 1
 strip = true
 panic = "abort"
+
+# 日常试用：和 release 一样开优化，但不做整体 LTO、代码生成并行、保留增量编译。
+# 改完代码重编快很多，exe 略大略慢；正式发布仍用 release。
+# cargo build --locked --profile fast --bin message-island --target x86_64-pc-windows-msvc
+[profile.fast]
+inherits = "release"
+lto = false
+codegen-units = 16
+incremental = true

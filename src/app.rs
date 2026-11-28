@@ -922,6 +922,8 @@ pub struct App {
     screen:Option<Rect>,
     horizontal_width: f32,
     pub(crate) settings_focus_requested:bool,
+    /// 托盘「关于爱尔栏」打开的独立小窗口；第二项是首帧需要显示并聚焦。
+    pub(crate) about_open:(bool,bool),
     pub(crate) settings_tab:usize,
     #[cfg(feature="sdk-js")]
     pub(crate) settings_plugin:Option<String>,
@@ -1136,7 +1138,7 @@ impl App {
             music_artwork: None,
             #[cfg(feature="sdk-js")]
             settings_plugin:None,
-            forced_open_until:0.0, settings_open:false, settings_window:std::sync::Arc::new(std::sync::Mutex::new(crate::settings_window::State::load())), displays:Vec::new(), browser_at_top:false, browser_minimal_active:false, glass_tint:0.0, fluid:Default::default(), fluid_origin:Pos2::ZERO, fluid_art:None, fluid_title:String::new(), screen:None, horizontal_width:WIN_W, settings_focus_requested:false, settings_tab:0, settings_category:0, messenger_statuses:Default::default(), notification_apps:model::NotificationApps::load(), subpage:None, task_dialog:None,
+            forced_open_until:0.0, settings_open:false, settings_window:std::sync::Arc::new(std::sync::Mutex::new(crate::settings_window::State::load())), displays:Vec::new(), browser_at_top:false, browser_minimal_active:false, glass_tint:0.0, fluid:Default::default(), fluid_origin:Pos2::ZERO, fluid_art:None, fluid_title:String::new(), screen:None, horizontal_width:WIN_W, settings_focus_requested:false, about_open:(false,false), settings_tab:0, settings_category:0, messenger_statuses:Default::default(), notification_apps:model::NotificationApps::load(), subpage:None, task_dialog:None,
             listener_status: "尚未连接".into(),
             notification_bell_until: 0.0, notification_bell_at: -10.0, notice: None, hud_notice: None, hud_alpha: 0.0, notice_width:Spring::new(0.0,CLOSE.0,CLOSE.1), notice_details:false, pending_messengers:Vec::new(), messenger_scroll:0.0, alerts: Default::default(), history: Default::default(), message_sources: Default::default(), pending: vec![],
             #[cfg(windows)]
@@ -1776,6 +1778,7 @@ impl App {
         crate::tray::Tray::start_with_exit(state,move||{layout.lock().unwrap_or_else(|e|e.into_inner()).close();})
     }
 
+    pub fn open_about(&mut self){self.about_open=(true,true);}
     pub fn open_settings(&mut self){
         #[cfg(feature="sdk-js")]
         if self.settings_tab != crate::extras::SETTINGS_TAB_PLUGIN_DETAIL { self.settings_plugin = None; }

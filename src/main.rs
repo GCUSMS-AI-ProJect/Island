@@ -429,6 +429,7 @@ impl Shell {
         for e in events {
             match e {
                 Event::OpenSettings=>self.app.open_settings(),
+                Event::About=>self.app.open_about(),
                 Event::OpenCalendar=>self.app.open_calendar(None),
                 Event::TogglePet => {
                     self.app.set_pet(!self.app.settings.pet);
@@ -1196,6 +1197,7 @@ impl eframe::App for Shell {
         #[cfg(not(windows))] let autostart = false;
         let settings_start=Instant::now();
         self.app.settings_ui(ctx, autostart);
+        self.app.about_ui(ctx);
         let settings_cost=settings_start.elapsed();
         #[cfg(windows)]
         if Self::sync_capture_exclusion(&mut self.app, self.native.as_mut()) {

@@ -1683,6 +1683,131 @@ fn settings_sidebar_row(
 }
 
 const SIDEBAR_SELECTED: &str = "settings-sidebar-selected-rect";
+/// 设置窗口自绘标题栏的高度与侧栏宽度（标题栏左段与侧栏同色）。
+const SETTINGS_TITLE_H: f32 = 38.0;
+const SETTINGS_SIDEBAR_W: f32 = 180.0;
+
+/// 设置窗口去掉系统标题栏后，在界面最上方自绘一条标题栏：
+/// 左侧应用图标和名称，右侧最小化 / 最大化 / 关闭；空白处按住拖动窗口，双击最大化或还原。
+/// 窗口四边和四角留出几像素的缩放区。返回是否点了关闭。
+fn settings_title_bar(ctx: &egui::Context) -> bool {
+    let mut close = false;
+    let maximized = ctx.input(|i| i.viewport().maximized.unwrap_or(false));
+    egui::TopBottomPanel::top("settings-title-bar").exact_height(SETTINGS_TITLE_H).show_separator_line(false)
+        .frame(egui::Frame::new()).show(ctx, |ui| {
+        let bar = ui.max_rect();
+        let painter = ui.painter();
+        let split = bar.left() + SETTINGS_SIDEBAR_W;
+        painter.rect_filled(egui::Rect::from_min_max(bar.min, egui::pos2(split, bar.bottom())), 0.0,
+            settings_color(ctx, Color32::from_rgb(24,24,29), Color32::from_rgb(238,239,246)));
+        painter.rect_filled(egui::Rect::from_min_max(egui::pos2(split, bar.top()), bar.max), 0.0,
+            settings_color(ctx, Color32::from_rgb(19,19,23), Color32::from_rgb(246,247,251)));
+        // 整条先登记为拖动区，按钮后登记、优先命中。
+        let drag = ui.interact(bar, ui.id().with("drag"), egui::Sense::click_and_drag());
+        if drag.drag_started_by(egui::PointerButton::Primary) { ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag); }
+        if drag.double_clicked() { ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(!maximized)); }
+        // 左侧：图标 + 品牌名。
+        let icon = egui::Rect::from_center_size(egui::pos2(bar.left() + 24.0, bar.center().y), egui::vec2(18.0, 18.0));
+        egui::Image::new(egui::include_image!("../assets/island-logo.png")).corner_radius(4.0).paint_at(ui, icon);
+        let accent = crate::settings_theme::accent(ctx);
+        let name = painter.layout_no_wrap("AirLand".into(), egui::FontId::proportional(14.0), accent);
+        let name_w = name.size().x;
+        painter.galley(egui::pos2(icon.right() + 8.0, bar.center().y - name.size().y / 2.0), name, accent);
+        painter.text(egui::pos2(icon.right() + 8.0 + name_w + 5.0, bar.center().y + 0.5), egui::Align2::LEFT_CENTER, "爱尔栏",
+            egui::FontId::proportional(11.5), settings_color(ctx, Color32::from_gray(150), Color32::from_gray(105)));
+        close = window_buttons(ui, bar, &[2, 1, 0], maximized);
+    });
+    if !maximized {
+        settings_resize_edges(ctx);
+        window_outline(ctx);
+    }
+    close
+}
+
+/// 无边框窗口外圈的发丝线：没有系统边框后，浅色窗口放在浅色桌面上会糊成一片。
+fn window_outline(ctx: &egui::Context) {
+    ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::new("settings-window-outline")))
+        .rect_stroke(ctx.screen_rect().shrink(0.5), 0.0,
+            egui::Stroke::new(1.0, settings_color(ctx, Color32::from_rgb(56,56,64), Color32::from_rgb(208,210,218))), egui::StrokeKind::Middle);
+}
+
+/// 自绘窗口按钮（从右往左排）：0 最小化、1 最大化 / 还原、2 关闭。46 × 标题栏高，与系统按钮一致；
+/// 关闭悬停为红底白字。最小化和最大化直接发窗口命令，返回是否点了关闭。
+fn window_buttons(ui: &egui::Ui, bar: egui::Rect, kinds: &[u8], maximized: bool) -> bool {
+    let ctx = ui.ctx();
+    let painter = ui.painter();
+    let mut close = false;
+    let fg = settings_color(ctx, Color32::from_gray(210), Color32::from_gray(50));
+    let mut x = bar.right();
+    for &kind in kinds {
+        {
+            let rect = egui::Rect::from_min_size(egui::pos2(x - 46.0, bar.top()), egui::vec2(46.0, bar.height()));
+            x -= 46.0;
+            let label = ["最小化", if maximized {"还原"} else {"最大化"}, "关闭"][kind as usize];
+            let response = ui.interact(rect, ui.id().with(("window-button", kind)), egui::Sense::click()).on_hover_text(label);
+            response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+            let hover = ctx.animate_bool_with_time(response.id.with("hover"), response.hovered(), 0.10);
+            let down = response.is_pointer_button_down_on();
+            let (bg, glyph) = if kind == 2 {
+                (Color32::from_rgb(232, 17, 35).gamma_multiply(if down {0.8} else {hover}), crate::settings_theme::mix(fg, Color32::WHITE, hover))
+            } else {
+                (settings_color(ctx, Color32::from_white_alpha(if down {22} else {14}), Color32::from_black_alpha(if down {16} else {10})).gamma_multiply(hover), fg)
+            };
+            if hover > 0.0 { painter.rect_filled(rect, 0.0, bg); }
+            let c = rect.center();
+            let stroke = egui::Stroke::new(1.0, glyph);
+            match kind {
+                0 => { painter.line_segment([c + egui::vec2(-5.0, 0.0), c + egui::vec2(5.0, 0.0)], stroke); }
+                1 if maximized => {
+                    painter.rect_stroke(egui::Rect::from_center_size(c + egui::vec2(-1.0, 1.0), egui::vec2(8.0, 8.0)), 1.0, stroke, egui::StrokeKind::Middle);
+                    painter.add(egui::Shape::line(vec![c + egui::vec2(-3.0, -3.0), c + egui::vec2(-3.0, -5.0), c + egui::vec2(5.0, -5.0), c + egui::vec2(5.0, 3.0), c + egui::vec2(3.0, 3.0)], stroke));
+                }
+                1 => { painter.rect_stroke(egui::Rect::from_center_size(c, egui::vec2(10.0, 10.0)), 1.0, stroke, egui::StrokeKind::Middle); }
+                _ => {
+                    painter.line_segment([c + egui::vec2(-5.0, -5.0), c + egui::vec2(5.0, 5.0)], stroke);
+                    painter.line_segment([c + egui::vec2(-5.0, 5.0), c + egui::vec2(5.0, -5.0)], stroke);
+                }
+            }
+            if response.clicked() {
+                match kind {
+                    0 => ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true)),
+                    1 => ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(!maximized)),
+                    _ => close = true,
+                }
+            }
+        }
+    }
+    close
+}
+
+/// 无边框窗口的缩放区：四边 5px、四角 10px，放在最上层，按下后交给系统缩放。
+fn settings_resize_edges(ctx: &egui::Context) {
+    use egui::{CursorIcon as C, ResizeDirection as D};
+    let screen = ctx.screen_rect();
+    let (e, k) = (5.0, 10.0);
+    let (l, t, r, b) = (screen.left(), screen.top(), screen.right(), screen.bottom());
+    let zones = [
+        (egui::Rect::from_min_max(egui::pos2(l, t), egui::pos2(l + k, t + k)), D::NorthWest, C::ResizeNorthWest),
+        (egui::Rect::from_min_max(egui::pos2(r - k, t), egui::pos2(r, t + k)), D::NorthEast, C::ResizeNorthEast),
+        (egui::Rect::from_min_max(egui::pos2(l, b - k), egui::pos2(l + k, b)), D::SouthWest, C::ResizeSouthWest),
+        (egui::Rect::from_min_max(egui::pos2(r - k, b - k), egui::pos2(r, b)), D::SouthEast, C::ResizeSouthEast),
+        (egui::Rect::from_min_max(egui::pos2(l + k, t), egui::pos2(r - k - 46.0 * 3.0, t + e)), D::North, C::ResizeNorth),
+        (egui::Rect::from_min_max(egui::pos2(l + k, b - e), egui::pos2(r - k, b)), D::South, C::ResizeSouth),
+        (egui::Rect::from_min_max(egui::pos2(l, t + k), egui::pos2(l + e, b - k)), D::West, C::ResizeWest),
+        (egui::Rect::from_min_max(egui::pos2(r - e, t + k), egui::pos2(r, b - k)), D::East, C::ResizeEast),
+    ];
+    for (i, (rect, direction, cursor)) in zones.into_iter().enumerate() {
+        if !rect.is_positive() { continue; }
+        egui::Area::new(egui::Id::new(("settings-resize", i))).order(egui::Order::Foreground).fixed_pos(rect.min)
+            .constrain(false).show(ctx, |ui| {
+                let (_, response) = ui.allocate_exact_size(rect.size(), egui::Sense::drag());
+                let response = response.on_hover_cursor(cursor);
+                if response.drag_started_by(egui::PointerButton::Primary) {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::BeginResize(direction));
+                }
+            });
+    }
+}
 
 /// 侧栏选中块：位置和高度用弹簧追随选中项，切换时从旧位置滑过去；左侧一条强调色短竖条。
 /// `slot` 是提前占好的绘制位置，保证选中块画在文字和图标下面。
@@ -1806,6 +1931,94 @@ impl App {
         }
         self.module_on(page)
     }
+    /// 托盘「关于爱尔栏」：与设置窗口同一套外观（自绘标题栏、强调色、跟随设置页深浅色），
+    /// 代替系统消息框。固定大小，打开时居中，Esc、关闭按钮或「好的」关闭。
+    pub fn about_ui(&mut self,ctx:&egui::Context){
+        let (open,first)=self.about_open;
+        if !open {return;}
+        const SIZE:egui::Vec2=egui::vec2(340.0,368.0);
+        let mut builder=egui::ViewportBuilder::default().with_title("关于爱尔栏").with_icon(theme::app_icon())
+            .with_inner_size(SIZE).with_resizable(false).with_decorations(false).with_maximize_button(false)
+            .with_visible(false).with_window_level(egui::WindowLevel::Normal);
+        if let Some(monitor)=ctx.input(|i|i.viewport().monitor_size) {
+            builder=builder.with_position(((monitor-SIZE)/2.0).to_pos2());
+        }
+        let theme_mode=self.settings.settings_theme;
+        let mut close=false;
+        ctx.show_viewport_immediate(egui::ViewportId::from_hash_of("island-about"),builder,|ctx,_|{
+            let dark=theme_mode.dark(crate::settings_theme::system_dark(ctx));
+            let mut style=(*ctx.style()).clone();
+            style.visuals=if dark{egui::Visuals::dark()}else{egui::Visuals::light()};
+            ctx.set_style(style);
+            ctx.send_viewport_cmd(egui::ViewportCommand::SetTheme(if dark{egui::SystemTheme::Dark}else{egui::SystemTheme::Light}));
+            if first {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+            }
+            if ctx.input(|i|i.viewport().close_requested()||i.key_pressed(egui::Key::Escape)) {close=true;}
+            let bg=settings_color(ctx,Color32::from_rgb(19,19,23),Color32::from_rgb(246,247,251));
+            egui::CentralPanel::default().frame(egui::Frame::new().fill(bg)).show(ctx,|ui|{
+                let full=ui.max_rect();
+                // 标题栏：整条可拖动，右侧只有关闭。
+                let bar=egui::Rect::from_min_size(full.min,egui::vec2(full.width(),SETTINGS_TITLE_H));
+                let drag=ui.interact(bar,ui.id().with("about-drag"),egui::Sense::click_and_drag());
+                if drag.drag_started_by(egui::PointerButton::Primary){ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag);}
+                ui.painter().text(egui::pos2(bar.left()+16.0,bar.center().y),egui::Align2::LEFT_CENTER,"关于",
+                    egui::FontId::proportional(12.0),settings_color(ctx,Color32::from_gray(150),Color32::from_gray(105)));
+                close|=window_buttons(ui,bar,&[2],false);
+                // 打开时内容从下方轻轻浮上来。
+                let enter=egui::Id::new("about-enter");
+                if first {ctx.data_mut(|d|d.insert_temp(enter,crate::anim::Spring::new(0.0,260.0,0.8)));}
+                let t=if cfg!(test){1.0}else{crate::settings_theme::spring(ctx,enter,1.0,260.0,0.8)};
+                let lift=10.0*(1.0-t.clamp(0.0,1.0));
+                let painter=ui.painter();
+                let accent=crate::settings_theme::accent(ctx);
+                let cx=full.center().x;
+                // 图标：强调色柔光底 + 圆角图标。
+                let icon_c=egui::pos2(cx,bar.bottom()+46.0+lift);
+                painter.circle_filled(icon_c,44.0,crate::settings_theme::accent_soft(ctx).gamma_multiply(0.7));
+                let icon=egui::Rect::from_center_size(icon_c,egui::vec2(60.0,60.0));
+                egui::Image::new(egui::include_image!("../assets/island-logo.png")).corner_radius(15.0).paint_at(ui,icon);
+                let mut y=icon.bottom()+18.0;
+                let name=painter.layout_no_wrap("AirLand".into(),egui::FontId::proportional(22.0),accent);
+                let cn=painter.layout_no_wrap("爱尔栏".into(),egui::FontId::proportional(14.0),settings_color(ctx,Color32::from_gray(200),Color32::from_gray(70)));
+                let gap=7.0;let total=name.size().x+gap+cn.size().x;
+                let left=cx-total/2.0;
+                painter.galley(egui::pos2(left,y),name.clone(),accent);
+                painter.galley(egui::pos2(left+name.size().x+gap,y+name.size().y-cn.size().y-2.0),cn,Color32::PLACEHOLDER);
+                y+=name.size().y+8.0;
+                // 版本号胶囊。
+                let ver=painter.layout_no_wrap(format!("版本 {}",env!("CARGO_PKG_VERSION")),egui::FontId::proportional(11.5),accent);
+                let chip=egui::Rect::from_center_size(egui::pos2(cx,y+10.0),ver.size()+egui::vec2(18.0,8.0));
+                painter.rect_filled(chip,chip.height()/2.0,crate::settings_theme::accent_soft(ctx));
+                painter.galley(chip.center()-ver.size()/2.0,ver,accent);
+                y=chip.bottom()+14.0;
+                painter.text(egui::pos2(cx,y),egui::Align2::CENTER_TOP,"Windows 桌面信息岛小助手",egui::FontId::proportional(13.0),
+                    settings_color(ctx,Color32::from_gray(220),Color32::from_rgb(30,34,41)));
+                y+=24.0;
+                // 作者行：细分隔线之间居中。
+                let line=settings_color(ctx,Color32::from_rgb(48,48,56),Color32::from_rgb(226,228,236));
+                painter.hline(egui::Rangef::new(cx-110.0,cx+110.0),y,egui::Stroke::new(1.0,line));
+                let author_label=painter.layout_no_wrap("作者".into(),egui::FontId::proportional(12.0),settings_color(ctx,Color32::from_gray(150),Color32::from_gray(105)));
+                let author=painter.layout_no_wrap("GCUSMS".into(),egui::FontId::proportional(13.0),accent);
+                let w=author_label.size().x+8.0+author.size().x;
+                painter.galley(egui::pos2(cx-w/2.0,y+10.0+1.0),author_label,Color32::PLACEHOLDER);
+                painter.galley(egui::pos2(cx-w/2.0+w-author.size().x,y+10.0),author,Color32::PLACEHOLDER);
+                y+=36.0;
+                painter.hline(egui::Rangef::new(cx-110.0,cx+110.0),y,egui::Stroke::new(1.0,line));
+                painter.text(egui::pos2(cx,y+10.0),egui::Align2::CENTER_TOP,"退出请右键托盘图标，选择「退出」",egui::FontId::proportional(11.5),
+                    settings_color(ctx,Color32::from_gray(140),Color32::from_gray(115)));
+                // 底部主按钮。
+                let button=egui::Rect::from_center_size(egui::pos2(cx,full.bottom()-34.0),egui::vec2(120.0,32.0));
+                let mut child=ui.new_child(egui::UiBuilder::new().max_rect(button).layout(egui::Layout::centered_and_justified(egui::Direction::LeftToRight)));
+                child.spacing_mut().button_padding=egui::vec2(12.0,6.0);
+                if settings_primary_button(&mut child,"好的").clicked(){close=true;}
+            });
+            window_outline(ctx);
+        });
+        self.about_open=(!close,false);
+    }
+
     pub fn settings_ui(&mut self,ctx:&egui::Context,autostart:bool){
         // 设置弹窗独立于页面的灰显区域。模块关掉后撤下弹窗，避免继续操作。
         if !self.module_on(crate::app::MAIL_PAGE) {self.mail.form.open=false;}
@@ -1819,7 +2032,7 @@ impl App {
         let id=egui::ViewportId::from_hash_of("island-settings");
         let focus_requested=std::mem::take(&mut self.settings_focus_requested);
         let opening=self.window_layout().open();
-        ctx.show_viewport_immediate(id,egui::ViewportBuilder::default().with_title("爱尔栏设置").with_icon(theme::app_icon()).with_inner_size([690.0,560.0]).with_min_inner_size([600.0,450.0]).with_visible(false).with_active(false).with_window_level(egui::WindowLevel::Normal),|ctx,_|{
+        ctx.show_viewport_immediate(id,egui::ViewportBuilder::default().with_title("爱尔栏设置").with_icon(theme::app_icon()).with_decorations(false).with_resizable(true).with_inner_size([690.0,560.0]).with_min_inner_size([600.0,450.0]).with_visible(false).with_active(false).with_window_level(egui::WindowLevel::Normal),|ctx,_|{
             let restored=opening && self.window_layout().restore(ctx);
             if !restored{self.window_layout().observe(ctx);}
             let dark=self.settings.settings_theme.dark(crate::settings_theme::system_dark(ctx));
@@ -1840,7 +2053,9 @@ impl App {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
                 ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
             }
-            if ctx.input(|i|i.viewport().close_requested()){self.settings_open=false;self.quota_close_connection();}
+            // 自绘标题栏要先于侧栏和正文登记，才会占据窗口最上方一整条。
+            let close_clicked=settings_title_bar(ctx);
+            if close_clicked || ctx.input(|i|i.viewport().close_requested()){self.settings_open=false;self.quota_close_connection();}
             let before=format!("{:?}",self.settings);
             #[cfg(feature="sdk-js")]
             let plugin_pages: Vec<_> = self.plugins.standalone_settings_pages()
@@ -1854,7 +2069,7 @@ impl App {
                 self.settings_tab = SETTINGS_TAB_PLUGINS;
                 self.settings_plugin = None;
             }
-            egui::SidePanel::left("settings-sidebar").resizable(false).exact_width(180.0).frame(egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(24,24,29),Color32::from_rgb(238,239,246))).stroke(egui::Stroke::NONE).inner_margin(egui::Margin::symmetric(10,12))).show(ctx,|ui|{
+            egui::SidePanel::left("settings-sidebar").resizable(false).exact_width(SETTINGS_SIDEBAR_W).frame(egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(24,24,29),Color32::from_rgb(238,239,246))).stroke(egui::Stroke::NONE).inner_margin(egui::Margin{left:10,right:10,top:2,bottom:12})).show(ctx,|ui|{
                 ui.add_space(2.0);
                 let per=(ui.available_height()-80.0)/(SETTINGS_GROUPS.len()+plugin_pages.len()) as f32;
                 let row_h=(per-6.0).clamp(20.0,32.0);
@@ -1869,19 +2084,13 @@ impl App {
                         let _ = take_sidebar_selected(ui.ctx());
                         for &(name, start, end, section) in main {
                             if !section.is_empty() {
-                                ui.add_space(if start == 0 { 2.0 } else { 8.0 });
-                                let color = settings_color(ui.ctx(), Color32::from_gray(150), Color32::from_gray(105));
-                                if start == 0 {
-                                    // 顶部品牌字样：AirLand 用强调色，后接中文名。
-                                    ui.horizontal(|ui| {
-                                        ui.spacing_mut().item_spacing.x = 5.0;
-                                        ui.label(egui::RichText::new(section).size(14.0).strong().color(crate::settings_theme::accent(ui.ctx())));
-                                        ui.label(egui::RichText::new("爱尔栏").size(11.0).color(color));
-                                    });
-                                } else {
+                                // 品牌名已在顶部标题栏，第一组不再重复分组标题。
+                                if start != 0 {
+                                    ui.add_space(8.0);
+                                    let color = settings_color(ui.ctx(), Color32::from_gray(150), Color32::from_gray(105));
                                     ui.label(egui::RichText::new(section).size(11.0).color(color));
+                                    ui.add_space(3.0);
                                 }
-                                ui.add_space(3.0);
                             }
                             #[cfg(feature="sdk-js")]
                             if section == "功能" {
@@ -1919,7 +2128,7 @@ impl App {
                 let selected = take_sidebar_selected(ui.ctx());
                 paint_sidebar_pill(ui, pill, "bottom", origin, selected);
             });
-            egui::CentralPanel::default().frame(egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(19,19,23),Color32::from_rgb(246,247,251))).inner_margin(egui::Margin::symmetric(22,16))).show(ctx,|ui|{
+            egui::CentralPanel::default().frame(egui::Frame::new().fill(settings_color(ctx,Color32::from_rgb(19,19,23),Color32::from_rgb(246,247,251))).inner_margin(egui::Margin{left:22,right:22,top:4,bottom:16})).show(ctx,|ui|{
                 settings_apply_style(ui);
                 #[cfg(feature="sdk-js")]
                 let plugin = plugin_pages.iter().find(|(id, _)| {
@@ -2879,6 +3088,10 @@ impl App {
                             ui.horizontal(|ui|{
                                 ui.label(egui::RichText::new(format!("版本 {}",env!("CARGO_PKG_VERSION"))).size(13.0));
                                 ui.add_space(8.0);
+                            });
+                            ui.horizontal(|ui|{
+                                ui.label(egui::RichText::new("作者").size(13.0).color(settings_color(ctx,Color32::from_gray(160),Color32::from_gray(100))));
+                                ui.label(egui::RichText::new("GCUSMS").size(13.0).strong().color(crate::settings_theme::accent(ctx)));
                             });
                             ui.label(egui::RichText::new("桌面顶部的音乐、专注、提醒与日程小助手。").size(12.0).color(settings_color(ctx,Color32::from_gray(180),Color32::from_gray(75))));
                             ui.horizontal_wrapped(|ui|{

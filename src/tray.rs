@@ -83,6 +83,8 @@ impl Ctx {
 pub enum Event {
     TogglePet,
     OpenSettings,
+    /// 「关于爱尔栏」：由主程序画成与设置页同风格的小窗口。
+    About,
     OpenCalendar,
     ToggleMinimal,
     ToggleAutostart,
@@ -221,22 +223,6 @@ fn menu_items(menu: HMENU) -> Vec<(String, bool, bool)> {
     }
 }
 
-fn about() {
-    let text = wide(&format!(
-        "AirLand 爱尔栏 {}\n\nWindows 桌面信息岛小助手\n退出请右键托盘图标，选择「退出」。",
-        env!("CARGO_PKG_VERSION")
-    ));
-    let title = wide("关于爱尔栏");
-    unsafe {
-        MessageBoxW(
-            None,
-            PCWSTR(text.as_ptr()),
-            PCWSTR(title.as_ptr()),
-            MB_OK | MB_ICONINFORMATION,
-        );
-    }
-}
-
 fn dump_menu(hwnd: HWND, ctx: &Ctx, menu: HMENU) {
     if let Ok(path) = std::env::var("ISLAND_TRAY_DUMP") {
         let state = ctx.state();
@@ -289,7 +275,7 @@ fn show_menu_at(hwnd: HWND, ctx: &Ctx, x: i32, y: i32) {
                 let _ = ctx.tx.send(Event::ToggleMinimal);
             }
             CMD_SETTINGS => {let _=ctx.tx.send(Event::OpenSettings);}
-            CMD_ABOUT => about(),
+            CMD_ABOUT => {let _=ctx.tx.send(Event::About);}
             CMD_EXIT => {
                 (ctx.before_exit)();
                 remove_icon(hwnd);

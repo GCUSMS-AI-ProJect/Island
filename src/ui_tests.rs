@@ -1597,6 +1597,51 @@ fn island_drag_header(h:&mut H,bounds:crate::display_layout::Bounds,ppp:f32)->Po
     }).expect("展开后的日期应可见")
 }
 
+/// 托盘「关于爱尔栏」是与设置页同风格的小窗口：显示名称、版本和作者，点「好的」关闭。
+/// 设置 ISLAND_ABOUT_PREVIEW=目录 时顺带导出深浅两张预览图。
+#[test]
+fn about_window_matches_app_style_and_closes(){
+    use crate::settings_theme::SettingsTheme;
+    let _g=ENV_LOCK.lock().unwrap_or_else(|e|e.into_inner());
+    let preview=std::env::var_os("ISLAND_ABOUT_PREVIEW").map(std::path::PathBuf::from);
+    for (mode,dark) in [(SettingsTheme::Light,false),(SettingsTheme::Dark,true)] {
+        let mut h=H::new();h.ctx.set_embed_viewports(false);h.app.settings.settings_theme=mode;
+        h.app.open_about();
+        let (w,hgt,scale)=(340.0f32,368.0f32,2.0f32);
+        let mut raster=crate::preview_raster::Raster::new((w*scale) as usize,(hgt*scale) as usize);
+        let run=|h:&mut H,raster:&mut crate::preview_raster::Raster,events:Vec<egui::Event>|->egui::FullOutput{
+            let output=std::sync::Arc::new(Mutex::new(None));let capture=output.clone();
+            egui::Context::set_immediate_viewport_renderer(move|ctx,mut viewport|{
+                let id=viewport.ids.this;
+                let raw=egui::RawInput{viewport_id:id,screen_rect:Some(Rect::from_min_size(Pos2::ZERO,egui::vec2(w,hgt))),events:events.clone(),
+                    viewports:std::iter::once((id,egui::ViewportInfo{native_pixels_per_point:Some(scale),..Default::default()})).collect(),..Default::default()};
+                *capture.lock().unwrap()=Some(ctx.run(raw,|ctx|(viewport.viewport_ui_cb)(ctx)));
+            });
+            let root=h.ctx.run(Default::default(),|ctx|h.app.about_ui(ctx));
+            raster.update_textures(&root.textures_delta);
+            let child=output.lock().unwrap().take().expect("应打开关于窗口");
+            raster.update_textures(&child.textures_delta);
+            child
+        };
+        let mut child=run(&mut h,&mut raster,vec![]);
+        for _ in 0..3 {child=run(&mut h,&mut raster,vec![]);}
+        let text=|out:&egui::FullOutput,s:&str|out.shapes.iter().find_map(|c|match &c.shape{egui::Shape::Text(t) if t.galley.text()==s=>Some(t.visual_bounding_rect()),_=>None});
+        for s in ["AirLand","爱尔栏","GCUSMS","作者","好的"] {assert!(text(&child,s).is_some(),"关于窗口应显示 {s}");}
+        assert!(text(&child,&format!("版本 {}",env!("CARGO_PKG_VERSION"))).is_some());
+        if let Some(dir)=&preview {
+            std::fs::create_dir_all(dir).unwrap();
+            raster.buf.fill([0.0,0.0,0.0,1.0]);
+            raster.draw(&h.ctx.tessellate(child.shapes.clone(),child.pixels_per_point),child.pixels_per_point);
+            let mut rgba=Vec::new();raster.to_rgba8(&mut rgba);
+            image::RgbaImage::from_raw((w*scale) as u32,(hgt*scale) as u32,rgba).unwrap()
+                .save(dir.join(format!("about-{}.png",if dark{"dark"}else{"light"}))).unwrap();
+        }
+        let ok=text(&child,"好的").unwrap().center();
+        for pressed in [true,false] {run(&mut h,&mut raster,vec![egui::Event::PointerMoved(ok),egui::Event::PointerButton{pos:ok,button:egui::PointerButton::Primary,pressed,modifiers:Default::default()}]);}
+        assert!(!h.app.about_open.0,"点「好的」应关闭关于窗口");
+    }
+}
+
 /// 左、右、底部停靠时，面板靠屏幕边缘的那条边也能拖动；顶部停靠沿用顶栏把手，不另加。
 #[test]
 fn island_position_drag_starts_from_the_screen_edge_side_of_the_panel(){
